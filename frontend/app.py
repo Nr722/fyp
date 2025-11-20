@@ -104,29 +104,69 @@ if not game.is_game_done:
             phase = game.get_current_phase()
             phase_type = phase[-1] if phase else 'M'
 
-            # Dynamically generate input fields for all units in orderable_locs
+            # Dynamically generate input fields for all units or adjustments in orderable_locs
             current_orders = []
             for loc in orderable_locs:
                 possible_orders_for_loc = all_possible_orders.get(loc, [])
 
-                # Match unit to location
-                unit_string = next((u for u in power_units if u.endswith(f" {loc}")), None)
+                # Adjustment phase (builds/removes) — there may be no existing unit at the location
+                if phase_type == 'A':
+                    if not possible_orders_for_loc:
+                        st.warning(f"No adjustment options available for {loc}. Skipping.")
+                        continue
+                    label = f"Adjustment for {loc}:"
+                    order = st.selectbox(
+                        label,
+                        options=possible_orders_for_loc,
+                        key=f"order_{HUMAN_POWER}_{loc}_{phase_type}"
+                    )
+                    current_orders.append(order)
+                    continue
+
+                # Movement / Retreat phases: match an existing unit at the location
+                # Locations may include coast qualifiers (e.g. 'SPA/NC'), so match by base token
+                unit_string = None
+                unit_loc_token = None
+                for u in power_units:
+                    parts = u.split()
+                    if len(parts) < 2:
+                        continue
+                    token = parts[-1]
+                    # Exact match (including coast)
+                    if token == loc:
+                        unit_string = u
+                        unit_loc_token = token
+                        break
+                    # Match base (before '/') to handle e.g. 'SPA' vs 'SPA/NC'
+                    if token.split('/')[0] == loc:
+                        unit_string = u
+                        unit_loc_token = token
+                        break
+
                 if not unit_string:
                     st.warning(f"Could not determine unit type for {loc}. Skipping.")
                     continue
 
                 unit_type = unit_string.split()[0].replace('*', '')
-                default_order = f"{unit_type} {loc} H"
-                if default_order not in possible_orders_for_loc:
-                    possible_orders_for_loc.insert(0, default_order)
+                # Use the unit's precise location token when forming a default HOLD order
+                loc_for_order = unit_loc_token or loc
+
+                # Merge possible orders keyed by both the simple loc and the precise token
+                merged_possible = list(dict.fromkeys(
+                    (all_possible_orders.get(loc, []) or []) + (all_possible_orders.get(loc_for_order, []) or [])
+                ))
+
+                default_order = f"{unit_type} {loc_for_order} H"
+                if default_order not in merged_possible:
+                    merged_possible.insert(0, default_order)
 
                 # Label for the input field
-                label = f"Order for {unit_type} {loc}:"
+                label = f"Order for {unit_type} {loc_for_order}:"
 
                 # Create input field for the order
                 order = st.selectbox(
                     label,
-                    options=possible_orders_for_loc,
+                    options=merged_possible,
                     key=f"order_{HUMAN_POWER}_{loc}_{phase_type}"
                 )
                 current_orders.append(order)
