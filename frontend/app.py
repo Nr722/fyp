@@ -5,10 +5,12 @@ try:
     # When running from project root: `streamlit run frontend/app.py`
     from frontend.helpers import show_board, render_svg, get_map_filename
     from frontend.bot import get_bot_orders
+    from frontend.viz import generate_history_svg
 except ModuleNotFoundError:
     # When running from inside the folder: `cd frontend && streamlit run app.py`
     from helpers import show_board, render_svg, get_map_filename
     from bot import get_bot_orders
+    from viz import generate_history_svg
 
 # --- Configuration ---
 # Change this to play as a different power; all others will be bots.
@@ -68,6 +70,17 @@ with st.sidebar:
 # Display the current board state
 st.header("Game Board")
 render_svg(get_map_filename(game.get_current_phase()))
+
+if game.get_phase_history():
+    with st.expander("Show Last Turn Adjudication"):
+        last_phase_name = list(game.get_phase_history())[-1].name
+        hist_path = f"maps/history_{last_phase_name}.svg"
+        if not os.path.exists(hist_path):
+             generate_history_svg(game, hist_path)
+        
+        st.subheader(f"Adjudication Results: {last_phase_name}")
+        render_svg(hist_path)
+
 
 # Display board status summary
 st.header("Board Status")
