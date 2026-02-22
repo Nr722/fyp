@@ -9,7 +9,7 @@ HUMAN_POWER_DEFAULT = 'FRANCE'
 
 # --- Streamlit App ---
 st.set_page_config(page_title="Diplomacy", layout="wide")
-st.title("👑 Diplomacy Game")
+st.title(" Diplomacy Game")
 
 # --- Game State Initialization ---
 if 'game_id' not in st.session_state:
@@ -17,19 +17,20 @@ if 'game_id' not in st.session_state:
     st.session_state.human_power = HUMAN_POWER_DEFAULT
     st.session_state.human_orders_submitted = False
 
-def start_new_game(power):
-    res = requests.post(f"{API_URL}/game/new", json={"human_power": power})
+def start_new_game(power, num_ai_bots=1):
+    res = requests.post(f"{API_URL}/game/new", json={"human_power": power, "num_ai_bots": num_ai_bots})
     if res.status_code == 200:
         data = res.json()
         st.session_state.game_id = data["game_id"]
         st.session_state.human_power = data["human_power"]
         st.session_state.human_orders_submitted = False
-        st.success("Started a new game!")
+        st.session_state.ai_powers = data.get("ai_powers", [])
+        st.success(f"Started a new game! AI Bots: {', '.join(st.session_state.ai_powers) if st.session_state.ai_powers else 'None'}")
     else:
         st.error("Failed to start a new game.")
 
 if not st.session_state.game_id:
-    start_new_game(HUMAN_POWER_DEFAULT)
+    start_new_game(HUMAN_POWER_DEFAULT, 1)
 
 if not st.session_state.game_id:
     st.stop()
@@ -39,7 +40,7 @@ res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/state")
 if res.status_code != 200:
     st.error("Failed to fetch game state. The server might have restarted.")
     if st.button("Start New Game"):
-        start_new_game(st.session_state.human_power)
+        start_new_game(st.session_state.human_power, st.session_state.get("num_ai_bots", 1))
         st.rerun()
     st.stop()
 
@@ -64,8 +65,12 @@ with st.sidebar:
         st.session_state.human_power = new_power
         st.rerun()
 
+    st.subheader("AI Bots")
+    num_ai_bots = st.slider("Number of AI Bots", min_value=0, max_value=6, value=st.session_state.get("num_ai_bots", 1))
+    st.session_state.num_ai_bots = num_ai_bots
+
     if st.button("New Game", use_container_width=True):
-        start_new_game(st.session_state.human_power)
+        start_new_game(st.session_state.human_power, num_ai_bots)
         st.rerun()
 
     st.markdown("---")

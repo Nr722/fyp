@@ -1,0 +1,13 @@
+diplomacy==1.1.2
+matplotlib
+fastmcp>=2.13.0.2
+groq
+httpx>=0.28.1
+httpx-sse>=0.4.3
+mcp>=1.21.1
+openai-agents[litellm]
+fastapi
+jose
+jwt
+pydantic
+google-genai

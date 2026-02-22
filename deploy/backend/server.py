@@ -9,9 +9,7 @@ import base64
 from diplomacy.engine.game import Game
 from diplomacy.engine.message import Message
 
-# Import from frontend module
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Import from backend module
 from bot import get_bot_orders
 from viz import generate_history_svg
 
@@ -19,9 +17,11 @@ app = FastAPI()
 
 # In-memory store for games
 games: Dict[str, Game] = {}
+game_configs: Dict[str, Dict[str, Any]] = {}
 
 class CreateGameRequest(BaseModel):
     human_power: str
+    num_ai_bots: int = 1
 
 class OrderRequest(BaseModel):
     power: str
@@ -38,10 +38,20 @@ class ProcessTurnRequest(BaseModel):
 
 @app.post("/game/new")
 def create_game(req: CreateGameRequest):
+    import random
     game_id = str(uuid.uuid4())
     game = Game(map_name='standard')
     games[game_id] = game
-    return {"game_id": game_id, "human_power": req.human_power}
+    
+    # Assign AI bots
+    powers = list(game.powers.keys())
+    if req.human_power in powers:
+        powers.remove(req.human_power)
+    
+    ai_powers = random.sample(powers, min(req.num_ai_bots, len(powers)))
+    game_configs[game_id] = {"ai_powers": ai_powers}
+    
+    return {"game_id": game_id, "human_power": req.human_power, "ai_powers": ai_powers}
 
 @app.get("/game/{game_id}/state")
 def get_game_state(game_id: str):
@@ -115,10 +125,14 @@ def process_turn(game_id: str, req: ProcessTurnRequest):
     active_powers = [p for p, data in game.powers.items() if not data.is_eliminated()]
     bot_powers = [p for p in active_powers if p != req.human_power]
     
+    config = game_configs.get(game_id, {"ai_powers": []})
+    ai_powers = config.get("ai_powers", [])
+    
     bot_orders_dict = {}
     for bp in bot_powers:
         try:
-            bot_orders = get_bot_orders(game, bp)
+            bot_type = "ai" if bp in ai_powers else "random"
+            bot_orders = get_bot_orders(game, bp, bot_type=bot_type, game_id=game_id)
             game.set_orders(bp, bot_orders)
             bot_orders_dict[bp] = bot_orders
         except Exception as e:
@@ -168,3 +182,9 @@ def send_message(game_id: str, req: MessageRequest):
     )
     game.add_message(new_msg)
     return {"status": "success"}
+
+if __name__ == "__main__":
+    import uvicorn
+    # Make sure 'uvicorn' is installed in your uv environment
+    # 'server' refers to the filename server.py, 'app' is your FastAPI instance
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
