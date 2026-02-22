@@ -1,0 +1,170 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
+import uuid
+import os
+import json
+import base64
+
+from diplomacy.engine.game import Game
+from diplomacy.engine.message import Message
+
+# Import from frontend module
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from bot import get_bot_orders
+from viz import generate_history_svg
+
+app = FastAPI()
+
+# In-memory store for games
+games: Dict[str, Game] = {}
+
+class CreateGameRequest(BaseModel):
+    human_power: str
+
+class OrderRequest(BaseModel):
+    power: str
+    orders: List[str]
+
+class MessageRequest(BaseModel):
+    sender: str
+    recipient: str
+    message: str
+    phase: str
+
+class ProcessTurnRequest(BaseModel):
+    human_power: str
+
+@app.post("/game/new")
+def create_game(req: CreateGameRequest):
+    game_id = str(uuid.uuid4())
+    game = Game(map_name='standard')
+    games[game_id] = game
+    return {"game_id": game_id, "human_power": req.human_power}
+
+@app.get("/game/{game_id}/state")
+def get_game_state(game_id: str):
+    if game_id not in games:
+        raise HTTPException(status_code=404, detail="Game not found")
+    game = games[game_id]
+    
+    # Generate SVG map
+    current_phase = game.get_current_phase()
+    map_path = f"maps/board_{game_id}_{current_phase}.svg"
+    os.makedirs('maps', exist_ok=True)
+    game.render(incl_orders=True, incl_abbrev=True, output_path=map_path)
+    with open(map_path, "r") as f:
+        svg_content = f.read()
+        
+    # Generate history SVG if available
+    hist_svg_content = None
+    last_phase_name = None
+    if game.get_phase_history():
+        last_phase_name = list(game.get_phase_history())[-1].name
+        hist_path = f"maps/history_{game_id}_{last_phase_name}.svg"
+        generate_history_svg(game, hist_path)
+        with open(hist_path, "r") as f:
+            hist_svg_content = f.read()
+
+    active_powers = [p for p, data in game.powers.items() if not data.is_eliminated()]
+    
+    return {
+        "phase": current_phase,
+        "powers": list(game.powers.keys()),
+        "active_powers": active_powers,
+        "units": game.get_units(),
+        "centers": game.get_centers(),
+        "is_game_done": game.is_game_done,
+        "winner": game.outcome,
+        "map_svg": svg_content,
+        "history_svg": hist_svg_content,
+        "last_phase_name": last_phase_name
+    }
+
+@app.get("/game/{game_id}/orders/possible/{power}")
+def get_possible_orders(game_id: str, power: str):
+    if game_id not in games:
+        raise HTTPException(status_code=404, detail="Game not found")
+    game = games[game_id]
+    
+    return {
+        "orderable_locations": game.get_orderable_locations(power),
+        "all_possible_orders": game.get_all_possible_orders(),
+        "power_units": game.get_units(power)
+    }
+
+@app.post("/game/{game_id}/orders")
+def submit_orders(game_id: str, req: OrderRequest):
+    if game_id not in games:
+        raise HTTPException(status_code=404, detail="Game not found")
+    game = games[game_id]
+    
+    try:
+        game.set_orders(req.power, req.orders)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/game/{game_id}/process")
+def process_turn(game_id: str, req: ProcessTurnRequest):
+    if game_id not in games:
+        raise HTTPException(status_code=404, detail="Game not found")
+    game = games[game_id]
+    
+    active_powers = [p for p, data in game.powers.items() if not data.is_eliminated()]
+    bot_powers = [p for p in active_powers if p != req.human_power]
+    
+    bot_orders_dict = {}
+    for bp in bot_powers:
+        try:
+            bot_orders = get_bot_orders(game, bp)
+            game.set_orders(bp, bot_orders)
+            bot_orders_dict[bp] = bot_orders
+        except Exception as e:
+            print(f"Bot {bp} failed to set orders: {e}")
+            
+    prev_phase = game.get_current_phase()
+    game.process()
+    
+    return {
+        "status": "success",
+        "prev_phase": prev_phase,
+        "new_phase": game.get_current_phase(),
+        "bot_orders": bot_orders_dict
+    }
+
+@app.get("/game/{game_id}/messages")
+def get_messages(game_id: str, power: str):
+    if game_id not in games:
+        raise HTTPException(status_code=404, detail="Game not found")
+    game = games[game_id]
+    
+    visible_messages = game.filter_messages(game.messages, [power])
+    
+    # Convert to dict
+    msgs = []
+    for timestamp, msg in visible_messages.items():
+        msgs.append({
+            "sender": msg.sender,
+            "recipient": msg.recipient,
+            "message": msg.message,
+            "phase": msg.phase,
+            "time_sent": msg.time_sent
+        })
+    return {"messages": msgs}
+
+@app.post("/game/{game_id}/messages")
+def send_message(game_id: str, req: MessageRequest):
+    if game_id not in games:
+        raise HTTPException(status_code=404, detail="Game not found")
+    game = games[game_id]
+    
+    new_msg = Message(
+        sender=req.sender,
+        recipient=req.recipient,
+        message=req.message,
+        phase=req.phase
+    )
+    game.add_message(new_msg)
+    return {"status": "success"}

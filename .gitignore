@@ -56,6 +56,9 @@ Thumbs.db
 
 # Game files (logs)
 *.log
-maps/board_*.json
-maps/board_*.svg
+*.json
+*.svg
 /frontend/maps/
+
+
+/orders*

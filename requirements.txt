@@ -9,3 +9,6 @@ mcp>=1.21.1
 # pymongo
 # sentence-transformers>=2.2.0
 openai-agents[litellm]
+fastapi
+jose
+jwt
