@@ -4,6 +4,29 @@ import base64
 
 API_URL = "http://localhost:8000"
 
+def check_rate_limits():
+    """Checks for rate limit events from the backend and displays them as warnings."""
+    if 'last_rate_limit_check' not in st.session_state:
+        st.session_state.last_rate_limit_check = time.time()
+        
+    try:
+        res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/rate-limits")
+        if res.status_code == 200:
+            events = res.json().get("events", [])
+            # Filter for events that happened after our last check
+            new_events = [e for e in events if e.get('timestamp', 0) > st.session_state.last_rate_limit_check]
+            
+            for event in new_events:
+                st.toast(
+                    f"⚠️ Rate limit hit for {event['bot_name']}! Retrying in {event['delay']}s (Attempt {event['attempt']})",
+                    icon="⏳"
+                )
+            
+            if new_events:
+                st.session_state.last_rate_limit_check = time.time()
+    except Exception:
+        pass
+
 # --- Configuration ---
 HUMAN_POWER_DEFAULT = 'FRANCE'
 
@@ -17,7 +40,7 @@ if 'game_id' not in st.session_state:
     st.session_state.human_power = HUMAN_POWER_DEFAULT
     st.session_state.human_orders_submitted = False
 
-def start_new_game(power, num_ai_bots=1):
+def start_new_game(power, num_ai_bots=6):
     res = requests.post(f"{API_URL}/game/new", json={"human_power": power, "num_ai_bots": num_ai_bots})
     if res.status_code == 200:
         data = res.json()
@@ -30,17 +53,30 @@ def start_new_game(power, num_ai_bots=1):
         st.error("Failed to start a new game.")
 
 if not st.session_state.game_id:
-    start_new_game(HUMAN_POWER_DEFAULT, 1)
+    start_new_game(HUMAN_POWER_DEFAULT, 6)
 
 if not st.session_state.game_id:
     st.stop()
+
+# Check for any rate limit events from the last operation
+check_rate_limits()
+
+# Debug: Fake Rate Limit Button
+if st.sidebar.button("Debug: Test Rate Limit Popup"):
+    requests.post(f"{API_URL}/game/{st.session_state.game_id}/test-rate-limit")
+    st.rerun()
+
+if st.sidebar.button("Debug: Clear Rate Limit History"):
+    requests.post(f"{API_URL}/game/{st.session_state.game_id}/clear-rate-limits")
+    st.session_state.last_rate_limit_check = time.time()
+    st.success("Cleared")
 
 # Fetch current game state
 res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/state")
 if res.status_code != 200:
     st.error("Failed to fetch game state. The server might have restarted.")
     if st.button("Start New Game"):
-        start_new_game(st.session_state.human_power, st.session_state.get("num_ai_bots", 1))
+        start_new_game(st.session_state.human_power, st.session_state.get("num_ai_bots", 6))
         st.rerun()
     st.stop()
 
@@ -66,7 +102,7 @@ with st.sidebar:
         st.rerun()
 
     st.subheader("AI Bots")
-    num_ai_bots = st.slider("Number of AI Bots", min_value=0, max_value=6, value=st.session_state.get("num_ai_bots", 1))
+    num_ai_bots = st.slider("Number of AI Bots", min_value=0, max_value=6, value=st.session_state.get("num_ai_bots", 6))
     st.session_state.num_ai_bots = num_ai_bots
 
     if st.button("New Game", use_container_width=True):
@@ -228,27 +264,29 @@ if not game_state["is_game_done"]:
                         st.error(f"Invalid order submitted: {submit_res.text}")
     else:
         # Human orders in, generate bot orders and process
-        st.header("Processing Turn…")
-        
-        process_res = requests.post(
-            f"{API_URL}/game/{st.session_state.game_id}/process",
-            json={"human_power": HUMAN_POWER}
-        )
-        
-        if process_res.status_code == 200:
-            process_data = process_res.json()
-            bot_orders = process_data.get("bot_orders", {})
-            for bp, orders in bot_orders.items():
-                st.write(f" {bp}: {', '.join(orders) if orders else 'HOLD ALL'}")
-                
-            st.success(f"Processed {process_data['prev_phase']}. New phase: {process_data['new_phase']}")
+        with st.status("Processing AI Turn...", expanded=True) as status:
+            st.write("Gathering orders from all AI bots...")
+            process_res = requests.post(
+                f"{API_URL}/game/{st.session_state.game_id}/process",
+                json={"human_power": HUMAN_POWER}
+            )
             
-            # Reset for next turn
-            st.session_state.human_orders_submitted = False
-            if st.button("Start Next Turn", use_container_width=True):
-                st.rerun()
-        else:
-            st.error(f"Failed to process turn: {process_res.text}")
+            if process_res.status_code == 200:
+                status.update(label="Turn Processed!", state="complete", expanded=False)
+                process_data = process_res.json()
+                bot_orders = process_data.get("bot_orders", {})
+                for bp, orders in bot_orders.items():
+                    st.write(f" {bp}: {', '.join(orders) if orders else 'HOLD ALL'}")
+                    
+                st.success(f"Processed {process_data['prev_phase']}. New phase: {process_data['new_phase']}")
+                
+                # Reset for next turn
+                st.session_state.human_orders_submitted = False
+                if st.button("Start Next Turn", use_container_width=True):
+                    st.rerun()
+            else:
+                status.update(label="Process Failed", state="error")
+                st.error(f"Failed to process turn: {process_res.text}")
 
 # --- Chat Engine ---
 st.markdown("---")
@@ -321,19 +359,22 @@ for i, target_name in enumerate(tab_names):
             
             if st.form_submit_button("Send"):
                 if user_input.strip():
-                    send_res = requests.post(
-                        f"{API_URL}/game/{st.session_state.game_id}/messages",
-                        json={
-                            "sender": HUMAN_POWER,
-                            "recipient": target_name,
-                            "message": user_input,
-                            "phase": current_phase
-                        }
-                    )
-                    if send_res.status_code == 200:
-                        st.rerun()
-                    else:
-                        st.error("Failed to send message.")
+                    with st.status("Sending message and waiting for potential AI reactions...", expanded=False) as status:
+                        send_res = requests.post(
+                            f"{API_URL}/game/{st.session_state.game_id}/messages",
+                            json={
+                                "sender": HUMAN_POWER,
+                                "recipient": target_name,
+                                "message": user_input,
+                                "phase": current_phase
+                            }
+                        )
+                        if send_res.status_code == 200:
+                            status.update(label="Message sent!", state="complete")
+                            st.rerun()
+                        else:
+                            status.update(label="Failed to send", state="error")
+                            st.error("Failed to send message.")
 
 # --- Game Over ---
 if game_state["is_game_done"]:
