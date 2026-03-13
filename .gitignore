@@ -62,3 +62,6 @@ Thumbs.db
 
 
 /orders*
+
+deploy/backend/.venv/
+deploy/frontend/.venv/

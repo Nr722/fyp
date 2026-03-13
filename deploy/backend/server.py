@@ -10,7 +10,7 @@ from diplomacy.engine.game import Game
 from diplomacy.engine.message import Message
 
 # Import from backend module
-from bot import get_bot_orders
+from bot import get_bot_orders, handle_incoming_message
 from viz import generate_history_svg
 
 app = FastAPI()
@@ -63,7 +63,7 @@ def get_game_state(game_id: str):
     current_phase = game.get_current_phase()
     map_path = f"maps/board_{game_id}_{current_phase}.svg"
     os.makedirs('maps', exist_ok=True)
-    game.render(incl_orders=True, incl_abbrev=True, output_path=map_path)
+    game.render(incl_orders=False, incl_abbrev=True, output_path=map_path)
     with open(map_path, "r") as f:
         svg_content = f.read()
         
@@ -132,9 +132,20 @@ def process_turn(game_id: str, req: ProcessTurnRequest):
     for bp in bot_powers:
         try:
             bot_type = "ai" if bp in ai_powers else "random"
-            bot_orders = get_bot_orders(game, bp, bot_type=bot_type, game_id=game_id)
+            bot_orders, bot_messages = get_bot_orders(game, bp, bot_type=bot_type, game_id=game_id)
             game.set_orders(bp, bot_orders)
             bot_orders_dict[bp] = bot_orders
+            
+            # Process any proactive messages the bot wants to send
+            if bot_messages:
+                for msg_data in bot_messages:
+                    new_msg = Message(
+                        sender=bp,
+                        recipient=msg_data["recipient"],
+                        message=msg_data["message"],
+                        phase=game.get_current_phase()
+                    )
+                    game.add_message(new_msg)
         except Exception as e:
             print(f"Bot {bp} failed to set orders: {e}")
             
@@ -181,6 +192,42 @@ def send_message(game_id: str, req: MessageRequest):
         phase=req.phase
     )
     game.add_message(new_msg)
+    
+    # Trigger AI reaction if the message is sent to an AI or GLOBAL
+    config = game_configs.get(game_id, {"ai_powers": []})
+    ai_powers = config.get("ai_powers", [])
+    
+    recipients = []
+    if req.recipient == "GLOBAL":
+        recipients = [p for p in ai_powers if p != req.sender]
+    elif req.recipient in ai_powers:
+        recipients = [req.recipient]
+        
+    for bot_name in recipients:
+        try:
+            updated_orders, bot_messages = handle_incoming_message(
+                game=game,
+                bot_name=bot_name,
+                sender=req.sender,
+                message=req.message,
+                game_id=game_id
+            )
+            
+            if updated_orders is not None:
+                game.set_orders(bot_name, updated_orders)
+                
+            if bot_messages:
+                for msg_data in bot_messages:
+                    reply_msg = Message(
+                        sender=bot_name,
+                        recipient=msg_data["recipient"],
+                        message=msg_data["message"],
+                        phase=game.get_current_phase()
+                    )
+                    game.add_message(reply_msg)
+        except Exception as e:
+            print(f"Error handling message for bot {bot_name}: {e}")
+            
     return {"status": "success"}
 
 if __name__ == "__main__":

@@ -12,3 +12,4 @@ openai-agents[litellm]
 fastapi
 jose
 jwt
+litellm

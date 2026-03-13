@@ -3,7 +3,7 @@ import time
 import os
 from diplomacy import Game
 from diplomacy.utils.export import to_saved_game_format
-from bot import get_ai_orders_sync
+from test_phase.ai_bot import get_ai_orders_sync
 
 GAME_STATE_PATH = "./game_state.json"
 
