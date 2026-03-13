@@ -5,6 +5,9 @@ import uuid
 import os
 import json
 import base64
+import sys
+import io
+import time
 
 from diplomacy.engine.game import Game
 from diplomacy.engine.message import Message
@@ -18,6 +21,7 @@ app = FastAPI()
 # In-memory store for games
 games: Dict[str, Game] = {}
 game_configs: Dict[str, Dict[str, Any]] = {}
+rate_limit_events: List[Dict] = []
 
 class CreateGameRequest(BaseModel):
     human_power: str
@@ -116,6 +120,31 @@ def submit_orders(game_id: str, req: OrderRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/game/{game_id}/rate-limits")
+def get_rate_limits(game_id: str):
+    global rate_limit_events
+    events = list(rate_limit_events)
+    # rate_limit_events = [] # Clear after reading
+    return {"events": events}
+
+@app.post("/game/{game_id}/test-rate-limit")
+def test_rate_limit(game_id: str):
+    """Debug endpoint to fake a rate limit event."""
+    rate_limit_events.append({
+        "bot_name": "TEST_BOT",
+        "delay": "10",
+        "attempt": "1",
+        "type": "debug",
+        "timestamp": time.time()
+    })
+    return {"status": "Fake event queued"}
+
+@app.post("/game/{game_id}/clear-rate-limits")
+def clear_rate_limits(game_id: str):
+    global rate_limit_events
+    rate_limit_events = []
+    return {"status": "Cleared"}
+
 @app.post("/game/{game_id}/process")
 def process_turn(game_id: str, req: ProcessTurnRequest):
     if game_id not in games:
@@ -129,26 +158,61 @@ def process_turn(game_id: str, req: ProcessTurnRequest):
     ai_powers = config.get("ai_powers", [])
     
     bot_orders_dict = {}
-    for bp in bot_powers:
+    
+    # Capture stdout to detect rate limit logs
+    import bot
+    try:
+        # Check if we've already patched print, otherwise use the builtin
+        original_print = getattr(bot, 'print', print)
+        
+        def patched_print(*args, **kwargs):
+            msg = " ".join(map(str, args))
+            if "DEBUG_TPM_LIMIT|" in msg:
+                try:
+                    # Extract the part after the prefix
+                    parts = msg.split("DEBUG_TPM_LIMIT|")[1].split("|")
+                    if len(parts) >= 3:
+                        b_name, dly, att = parts[:3]
+                        rate_limit_events.append({
+                            "bot_name": b_name,
+                            "delay": dly,
+                            "attempt": att,
+                            "type": "order",
+                            "timestamp": time.time()
+                        })
+                except Exception as e:
+                    original_print(f"Error parsing rate limit log: {e}")
+            original_print(*args, **kwargs)
+        
+        bot.print = patched_print
         try:
-            bot_type = "ai" if bp in ai_powers else "random"
-            bot_orders, bot_messages = get_bot_orders(game, bp, bot_type=bot_type, game_id=game_id)
-            game.set_orders(bp, bot_orders)
-            bot_orders_dict[bp] = bot_orders
+            for bp in bot_powers:
+                try:
+                    bot_type = "ai" if bp in ai_powers else "random"
+                    bot_orders, bot_messages = get_bot_orders(game, bp, bot_type=bot_type, game_id=game_id)
+                    game.set_orders(bp, bot_orders)
+                    bot_orders_dict[bp] = bot_orders
+                    
+                    if bot_messages:
+                        for msg_data in bot_messages:
+                            new_msg = Message(
+                                sender=bp,
+                                recipient=msg_data["recipient"],
+                                message=msg_data["message"],
+                                phase=game.get_current_phase()
+                            )
+                            game.add_message(new_msg)
+                except Exception as e:
+                    print(f"Bot {bp} failed to set orders: {e}")
+        finally:
+            bot.print = original_print
             
-            # Process any proactive messages the bot wants to send
-            if bot_messages:
-                for msg_data in bot_messages:
-                    new_msg = Message(
-                        sender=bp,
-                        recipient=msg_data["recipient"],
-                        message=msg_data["message"],
-                        phase=game.get_current_phase()
-                    )
-                    game.add_message(new_msg)
-        except Exception as e:
-            print(f"Bot {bp} failed to set orders: {e}")
-            
+    except Exception as general_e:
+        # Fallback if bot has print issues or overall failure
+        print(f"Overall turn processing error: {general_e}")
+        if hasattr(bot, 'print'):
+            bot.print = original_print
+
     prev_phase = game.get_current_phase()
     game.process()
     
@@ -205,13 +269,38 @@ def send_message(game_id: str, req: MessageRequest):
         
     for bot_name in recipients:
         try:
-            updated_orders, bot_messages = handle_incoming_message(
-                game=game,
-                bot_name=bot_name,
-                sender=req.sender,
-                message=req.message,
-                game_id=game_id
-            )
+            import bot
+            original_print = getattr(bot, 'print', print)
+            def patched_print(*args, **kwargs):
+                msg = " ".join(map(str, args))
+                if "DEBUG_TPM_LIMIT|" in msg:
+                    try:
+                        parts = msg.split("DEBUG_TPM_LIMIT|")[1].split("|")
+                        if len(parts) >= 3:
+                            b_name, dly, att = parts[:3]
+                            rate_limit_events.append({
+                                "bot_name": b_name,
+                                "delay": dly,
+                                "attempt": att,
+                                "type": "message",
+                                "timestamp": time.time()
+                            })
+                    except Exception as e:
+                        original_print(f"Error parsing rate limit log: {e}")
+                original_print(*args, **kwargs)
+            
+            bot.print = patched_print
+            try:
+                updated_orders, bot_messages = handle_incoming_message(
+                    game=game,
+                    bot_name=bot_name,
+                    sender=req.sender,
+                    message=req.message,
+                    game_id=game_id,
+                    recipient=req.recipient
+                )
+            finally:
+                bot.print = original_print
             
             if updated_orders is not None:
                 game.set_orders(bot_name, updated_orders)

@@ -11,3 +11,6 @@ jose
 jwt
 pydantic
 google-genai
+langchain
+langchain-core 
+langchain-google-genai
