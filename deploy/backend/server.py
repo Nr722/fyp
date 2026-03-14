@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import uuid
@@ -8,7 +8,6 @@ import base64
 import sys
 import io
 import time
-
 from diplomacy.engine.game import Game
 from diplomacy.engine.message import Message
 
@@ -243,29 +242,18 @@ def get_messages(game_id: str, power: str):
         })
     return {"messages": msgs}
 
-@app.post("/game/{game_id}/messages")
-def send_message(game_id: str, req: MessageRequest):
+def process_ai_reaction_task(game_id: str, sender: str, recipient: str, message: str, phase: str):
     if game_id not in games:
-        raise HTTPException(status_code=404, detail="Game not found")
+        return
     game = games[game_id]
-    
-    new_msg = Message(
-        sender=req.sender,
-        recipient=req.recipient,
-        message=req.message,
-        phase=req.phase
-    )
-    game.add_message(new_msg)
-    
-    # Trigger AI reaction if the message is sent to an AI or GLOBAL
     config = game_configs.get(game_id, {"ai_powers": []})
     ai_powers = config.get("ai_powers", [])
     
     recipients = []
-    if req.recipient == "GLOBAL":
-        recipients = [p for p in ai_powers if p != req.sender]
-    elif req.recipient in ai_powers:
-        recipients = [req.recipient]
+    if recipient == "GLOBAL":
+        recipients = [p for p in ai_powers if p != sender]
+    elif recipient in ai_powers:
+        recipients = [recipient]
         
     for bot_name in recipients:
         try:
@@ -290,14 +278,15 @@ def send_message(game_id: str, req: MessageRequest):
                 original_print(*args, **kwargs)
             
             bot.print = patched_print
+            from bot import handle_incoming_message
             try:
                 updated_orders, bot_messages = handle_incoming_message(
                     game=game,
                     bot_name=bot_name,
-                    sender=req.sender,
-                    message=req.message,
+                    sender=sender,
+                    message=message,
                     game_id=game_id,
-                    recipient=req.recipient
+                    recipient=recipient
                 )
             finally:
                 bot.print = original_print
@@ -306,6 +295,7 @@ def send_message(game_id: str, req: MessageRequest):
                 game.set_orders(bot_name, updated_orders)
                 
             if bot_messages:
+                from diplomacy.engine.message import Message
                 for msg_data in bot_messages:
                     reply_msg = Message(
                         sender=bot_name,
@@ -316,6 +306,23 @@ def send_message(game_id: str, req: MessageRequest):
                     game.add_message(reply_msg)
         except Exception as e:
             print(f"Error handling message for bot {bot_name}: {e}")
+
+@app.post("/game/{game_id}/messages")
+def send_message(game_id: str, req: MessageRequest, bg_tasks: BackgroundTasks):
+    if game_id not in games:
+        raise HTTPException(status_code=404, detail="Game not found")
+    game = games[game_id]
+    
+    new_msg = Message(
+        sender=req.sender,
+        recipient=req.recipient,
+        message=req.message,
+        phase=req.phase
+    )
+    game.add_message(new_msg)
+    
+    # Trigger AI reaction in the background
+    bg_tasks.add_task(process_ai_reaction_task, game_id, req.sender, req.recipient, req.message, req.phase)
             
     return {"status": "success"}
 
