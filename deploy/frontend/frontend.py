@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
 import base64
+import time
+from streamlit_autorefresh import st_autorefresh
 
 API_URL = "http://localhost:8000"
 
@@ -39,6 +41,8 @@ if 'game_id' not in st.session_state:
     st.session_state.game_id = None
     st.session_state.human_power = HUMAN_POWER_DEFAULT
     st.session_state.human_orders_submitted = False
+    st.session_state.last_seen_messages = 0
+    st.session_state.read_counts = {}
 
 def start_new_game(power, num_ai_bots=6):
     res = requests.post(f"{API_URL}/game/new", json={"human_power": power, "num_ai_bots": num_ai_bots})
@@ -47,6 +51,8 @@ def start_new_game(power, num_ai_bots=6):
         st.session_state.game_id = data["game_id"]
         st.session_state.human_power = data["human_power"]
         st.session_state.human_orders_submitted = False
+        st.session_state.last_seen_messages = 0
+        st.session_state.read_counts = {}
         st.session_state.ai_powers = data.get("ai_powers", [])
         st.success(f"Started a new game! AI Bots: {', '.join(st.session_state.ai_powers) if st.session_state.ai_powers else 'None'}")
     else:
@@ -62,14 +68,14 @@ if not st.session_state.game_id:
 check_rate_limits()
 
 # Debug: Fake Rate Limit Button
-if st.sidebar.button("Debug: Test Rate Limit Popup"):
-    requests.post(f"{API_URL}/game/{st.session_state.game_id}/test-rate-limit")
-    st.rerun()
+# if st.sidebar.button("Debug: Test Rate Limit Popup"):
+#     requests.post(f"{API_URL}/game/{st.session_state.game_id}/test-rate-limit")
+#     st.rerun()
 
-if st.sidebar.button("Debug: Clear Rate Limit History"):
-    requests.post(f"{API_URL}/game/{st.session_state.game_id}/clear-rate-limits")
-    st.session_state.last_rate_limit_check = time.time()
-    st.success("Cleared")
+# if st.sidebar.button("Debug: Clear Rate Limit History"):
+#     requests.post(f"{API_URL}/game/{st.session_state.game_id}/clear-rate-limits")
+#     st.session_state.last_rate_limit_check = time.time()
+#     st.success("Cleared")
 
 # Fetch current game state
 res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/state")
@@ -290,7 +296,15 @@ if not game_state["is_game_done"]:
 
 # --- Chat Engine ---
 st.markdown("---")
-st.header("💬 Diplomacy Chat")
+col1, col2 = st.columns([4, 1])
+with col1:
+    st.header("💬 Diplomacy Chat")
+with col2:
+    if st.button("🔄 Refresh Messages", use_container_width=True):
+        st.rerun()
+
+# Automatically refresh page every 15 seconds to fetch new messages and replies
+st_autorefresh(interval=15000, key="chat_autorefresh")
 
 msg_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/messages", params={"power": HUMAN_POWER})
 if msg_res.status_code == 200:
@@ -298,6 +312,7 @@ if msg_res.status_code == 200:
 else:
     messages = []
 
+# Distribute messages into conversations
 conversations = {"GLOBAL": []}
 other_powers = [p for p in active_powers if p != HUMAN_POWER]
 for p in other_powers:
@@ -312,69 +327,88 @@ for msg in messages:
             conversations[partner].append(msg)
 
 tab_names = ["GLOBAL"] + sorted(other_powers)
-tabs = st.tabs(tab_names)
 
-for i, target_name in enumerate(tab_names):
-    with tabs[i]:
-        chat_container = st.container(height=300)
-        with chat_container:
-            msgs = conversations.get(target_name, [])
-            if not msgs:
-                st.info(f"Start of conversation in {target_name}.")
-            else:
-                for msg in msgs:
-                    sender_label = msg["sender"]
-                    align = "left"
-                    bg_color = "#f0f2f6"
-                    
-                    if msg["sender"] == HUMAN_POWER:
-                        sender_label = "You"
-                        align = "right" 
-                        bg_color = "#e6f3ff"
-                    
-                    if align == "right":
-                        _, msg_col = st.columns([1, 3])
-                    else:
-                        msg_col, _ = st.columns([3, 1])
-                        
-                    with msg_col:
-                        st.markdown(
-                            f"""
-                            <div style="
-                                background-color: {bg_color};
-                                padding: 10px;
-                                border-radius: 10px;
-                                margin-bottom: 5px;
-                                border: 1px solid #ddd;
-                            ">
-                                <small style="color: #666;"><b>{sender_label}</b> [{msg['phase']}]</small><br>
-                                {msg['message']}
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+# First, process any existing selection to clear its unread count
+current_tab = st.session_state.get("chat_tab_selector", "GLOBAL")
+st.session_state.read_counts[current_tab] = len(conversations.get(current_tab, []))
 
-        with st.form(key=f"chat_form_{target_name}", clear_on_submit=True):
-            user_input = st.text_input("Message:", key=f"input_{target_name}", placeholder=f"Message {target_name}...")
+# Calculate unread counts
+unread_counts = {}
+for t in tab_names:
+    total_msgs = len(conversations.get(t, []))
+    read_msgs = st.session_state.read_counts.get(t, 0)
+    unread = total_msgs - read_msgs
+    unread_counts[t] = unread if unread > 0 else 0
+
+# Format tab labels
+def format_tab(name):
+    return f"{name} ({unread_counts[name]} new)" if unread_counts.get(name, 0) > 0 else name
+
+# Use a ratio to make it look like tabs
+selected_chat = st.radio("Select Conversation", tab_names, format_func=format_tab, horizontal=True, label_visibility="collapsed", key="chat_tab_selector")
+
+chat_container = st.container(height=300)
+with chat_container:
+    msgs = conversations.get(selected_chat, [])
+    if not msgs:
+        st.info(f"Start of conversation in {selected_chat}.")
+    else:
+        for msg in msgs:
+            sender_label = msg["sender"]
+            align = "left"
+            bg_color = "#f0f2f6"
             
-            if st.form_submit_button("Send"):
-                if user_input.strip():
-                    with st.status("Sending message and waiting for potential AI reactions...", expanded=False) as status:
-                        send_res = requests.post(
-                            f"{API_URL}/game/{st.session_state.game_id}/messages",
-                            json={
-                                "sender": HUMAN_POWER,
-                                "recipient": target_name,
-                                "message": user_input,
-                                "phase": current_phase
-                            }
-                        )
-                        if send_res.status_code == 200:
-                            status.update(label="Message sent!", state="complete")
-                            st.rerun()
-                        else:
-                            status.update(label="Failed to send", state="error")
-                            st.error("Failed to send message.")
+            if msg["sender"] == HUMAN_POWER:
+                sender_label = "You"
+                align = "right" 
+                bg_color = "#e6f3ff"
+            
+            if align == "right":
+                _, msg_col = st.columns([1, 3])
+            else:
+                msg_col, _ = st.columns([3, 1])
+                
+            with msg_col:
+                st.markdown(
+                    f"""
+                    <div style="
+                        background-color: {bg_color};
+                        padding: 10px;
+                        border-radius: 10px;
+                        margin-bottom: 5px;
+                        border: 1px solid #ddd;
+                    ">
+                        <small style="color: #666;"><b>{sender_label}</b> [{msg['phase']}]</small><br>
+                        {msg['message']}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+with st.form(key=f"chat_form_{selected_chat}", clear_on_submit=True):
+    user_input = st.text_input("Message:", key=f"input_{selected_chat}", placeholder=f"Message {selected_chat}...")
+    
+    if st.form_submit_button("Send"):
+        if user_input.strip():
+            # Send message and don't block
+            send_res = requests.post(
+                f"{API_URL}/game/{st.session_state.game_id}/messages",
+                json={
+                    "sender": HUMAN_POWER,
+                    "recipient": selected_chat,
+                    "message": user_input,
+                    "phase": current_phase
+                }
+            )
+            if send_res.status_code == 200:
+                st.toast("Message sent!", icon="✅")
+                # Immediately assume we read our own just-sent message
+                # (plus whatever else was already in that channel)
+                # But actually, the background task might add messages. Our count will sync on rerun.
+                st.session_state.read_counts[selected_chat] = len(conversations[selected_chat]) + 1
+                st.rerun()
+            else:
+                st.error("Failed to send message.")
 
 # --- Game Over ---
 if game_state["is_game_done"]:
