@@ -4,8 +4,9 @@ import base64
 import time
 from streamlit_autorefresh import st_autorefresh
 
-API_URL = "http://localhost:8000"
+import os
 
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 def check_rate_limits():
     """Checks for rate limit events from the backend and displays them as warnings."""
     if 'last_rate_limit_check' not in st.session_state:
