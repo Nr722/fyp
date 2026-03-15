@@ -25,18 +25,29 @@ def get_model(model_name="models/gemma-3-27b-it"):
     # or use a model that does support these features.
     return ChatGoogleGenerativeAI(model=model_name, google_api_key=os.getenv("GEMINI_API_KEY"))
 
-def invoke_with_retry(model, history, max_retries=3, initial_delay=5, bot_name="Bot"):
+def invoke_with_retry(model, history, max_retries=4, initial_delay=5, bot_name="Bot"):
     """Invokes the model with exponential backoff for RateLimit errors."""
     for attempt in range(max_retries):
         try:
             return model.invoke(history)
         except Exception as e:
             err_msg = str(e).lower()
-            if "429" in err_msg or "rate limit" in err_msg or "quota" in err_msg:
+            if "429" in err_msg or "rate limit" in err_msg or "quota" in err_msg or "resource_exhausted" in err_msg:
                 if attempt < max_retries - 1:
                     delay = initial_delay * (2 ** attempt)
+                    
+                    # Gemini specifically tells us how long to wait ("Please retry in 45.44s")
+                    match = re.search(r'retry in ([0-9.]+)s', err_msg)
+                    if match:
+                        try:
+                            required_delay = float(match.group(1))
+                            # Add a 2 second buffer to ensure we clear the limit window
+                            delay = max(delay, required_delay + 2.0)
+                        except ValueError:
+                            pass
+                            
                     # Use a very specific prefix that is hard to miss
-                    print(f"DEBUG_TPM_LIMIT|{bot_name}|{delay}|{attempt + 1}")
+                    print(f"DEBUG_TPM_LIMIT|{bot_name}|{delay:.1f}|{attempt + 1}")
                     time.sleep(delay)
                     continue
             raise e
@@ -117,7 +128,7 @@ def get_ai_bot_orders(game, bot_name: str, game_id: str = None):
     phase = game.get_current_phase()
     
     if not orderable_locs:
-        return []
+        return [], []
         
     valid_orders = {loc: all_orders_dict.get(loc, []) for loc in orderable_locs}
 

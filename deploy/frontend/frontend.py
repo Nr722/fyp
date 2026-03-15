@@ -6,7 +6,8 @@ from streamlit_autorefresh import st_autorefresh
 
 import os
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+# API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_URL = "https://sunny-sparkle-backend.up.railway.app/"
 def check_rate_limits():
     """Checks for rate limit events from the backend and displays them as warnings."""
     if 'last_rate_limit_check' not in st.session_state:
@@ -35,6 +36,41 @@ HUMAN_POWER_DEFAULT = 'FRANCE'
 
 # --- Streamlit App ---
 st.set_page_config(page_title="Diplomacy", layout="wide")
+
+# --- Login Logic ---
+def login():
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
+
+    if not st.session_state.logged_in:
+        st.title("Diplomacy Login")
+        
+        # Load credentials from environment variables for better security
+        # In deployment, set these in your server environment (e.g., Railway, Heroku, or Streamlit Secrets)
+        # For local development, you can use a .env file or export them in your terminal
+        admin_username = os.getenv("APP_USERNAME")
+        admin_password = os.getenv("APP_PASSWORD")
+
+        if not admin_username or not admin_password:
+            st.error("Authentication system not configured. Please set APP_USERNAME and APP_PASSWORD in the environment variables.")
+            st.stop()
+
+        with st.form("login_form"):
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            submit = st.form_submit_button("Login")
+            
+            if submit:
+                if username == admin_username and password == admin_password:
+                    st.session_state.logged_in = True
+                    st.success("Logged in successfully!")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password")
+        st.stop()
+
+login()
+
 st.title(" Diplomacy Game")
 
 # --- Game State Initialization ---
@@ -55,7 +91,7 @@ def start_new_game(power, num_ai_bots=6):
         st.session_state.last_seen_messages = 0
         st.session_state.read_counts = {}
         st.session_state.ai_powers = data.get("ai_powers", [])
-        st.success(f"Started a new game! AI Bots: {', '.join(st.session_state.ai_powers) if st.session_state.ai_powers else 'None'}")
+        st.success(f"Started a new game! Bots: {', '.join(st.session_state.ai_powers) if st.session_state.ai_powers else 'None'}")
     else:
         st.error("Failed to start a new game.")
 
@@ -271,8 +307,8 @@ if not game_state["is_game_done"]:
                         st.error(f"Invalid order submitted: {submit_res.text}")
     else:
         # Human orders in, generate bot orders and process
-        with st.status("Processing AI Turn...", expanded=True) as status:
-            st.write("Gathering orders from all AI bots...")
+        with st.status("Processing Turn...", expanded=True) as status:
+            st.write("Gathering orders from all other players...")
             process_res = requests.post(
                 f"{API_URL}/game/{st.session_state.game_id}/process",
                 json={"human_power": HUMAN_POWER}
@@ -341,9 +377,24 @@ for t in tab_names:
     unread = total_msgs - read_msgs
     unread_counts[t] = unread if unread > 0 else 0
 
+# Show popups for new messages if they aren't in the currently selected tab
+current_msg_count = len(messages)
+if current_msg_count > st.session_state.get("last_seen_messages", 0):
+    new_msgs = messages[st.session_state.get("last_seen_messages", 0):]
+    for msg in new_msgs:
+        if msg["sender"] != HUMAN_POWER:
+            # Determine which tab this message belongs to
+            msg_tab = "GLOBAL" if msg["recipient"] == "GLOBAL" else msg["sender"]
+            # Only show toast if it's NOT the tab the user is currently looking at
+            if msg_tab != current_tab:
+                st.toast(f"New message from {msg['sender']}!", icon="✉️")
+    st.session_state.last_seen_messages = current_msg_count
+
 # Format tab labels
 def format_tab(name):
-    return f"{name} ({unread_counts[name]} new)" if unread_counts.get(name, 0) > 0 else name
+    if unread_counts.get(name, 0) > 0:
+        return f"🔴 {name} ({unread_counts[name]} new)"
+    return name
 
 # Use a ratio to make it look like tabs
 selected_chat = st.radio("Select Conversation", tab_names, format_func=format_tab, horizontal=True, label_visibility="collapsed", key="chat_tab_selector")
