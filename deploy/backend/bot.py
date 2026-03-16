@@ -19,7 +19,7 @@ load_dotenv()
 # Dictionary to store chat histories for each bot in each game
 chat_histories = {}
 
-def get_model(model_name="models/gemma-3-27b-it"):
+def get_model(model_name="models/gemini-3.1-flash-lite-preview"):
     # Note: Gemma models currently do not support JSON mode or structured outputs via the API.
     # We use a standard chat model and will handle the parsing manually if needed, 
     # or use a model that does support these features.
