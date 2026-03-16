@@ -166,6 +166,11 @@ def get_ai_bot_orders(game, bot_name: str, game_id: str = None):
         
         # Parse the response text
         raw_text = response.content
+        if isinstance(raw_text, list):
+            raw_text = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in raw_text)
+        else:
+            raw_text = str(raw_text)
+            
         match = re.search(r'\{.*\}', raw_text, re.DOTALL)
         if match:
             data_dict = json.loads(match.group(0))
@@ -275,6 +280,11 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
         
         # Parse text
         raw_text = response.content
+        if isinstance(raw_text, list):
+            raw_text = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in raw_text)
+        else:
+            raw_text = str(raw_text)
+            
         match = re.search(r'\{.*\}', raw_text, re.DOTALL)
         if match:
             data_dict = json.loads(match.group(0))
