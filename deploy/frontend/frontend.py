@@ -5,9 +5,12 @@ import time
 from streamlit_autorefresh import st_autorefresh
 
 import os
+from dotenv import load_dotenv
 
-# API_URL = os.getenv("API_URL", "http://localhost:8000")
-API_URL = "https://sunny-sparkle-backend.up.railway.app/"
+load_dotenv()
+
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+# API_URL = "https://sunny-sparkle-backend.up.railway.app/"
 def check_rate_limits():
     """Checks for rate limit events from the backend and displays them as warnings."""
     if 'last_rate_limit_check' not in st.session_state:

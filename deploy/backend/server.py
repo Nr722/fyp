@@ -12,7 +12,9 @@ from diplomacy.engine.game import Game
 from diplomacy.engine.message import Message
 
 # Import from backend module
-from bot import get_bot_orders, handle_incoming_message
+from bot.bot import get_bot_orders
+from bot.handle_messages import handle_incoming_message
+from bot.random_bot import get_random_bot_orders
 from viz import generate_history_svg
 
 app = FastAPI()
@@ -159,7 +161,7 @@ def process_turn(game_id: str, req: ProcessTurnRequest):
     bot_orders_dict = {}
     
     # Capture stdout to detect rate limit logs
-    import bot
+    import bot.bot as bot
     try:
         # Check if we've already patched print, otherwise use the builtin
         original_print = getattr(bot, 'print', print)
@@ -257,7 +259,7 @@ def process_ai_reaction_task(game_id: str, sender: str, recipient: str, message:
         
     for bot_name in recipients:
         try:
-            import bot
+            import bot.bot as bot
             original_print = getattr(bot, 'print', print)
             def patched_print(*args, **kwargs):
                 msg = " ".join(map(str, args))
@@ -278,7 +280,7 @@ def process_ai_reaction_task(game_id: str, sender: str, recipient: str, message:
                 original_print(*args, **kwargs)
             
             bot.print = patched_print
-            from bot import handle_incoming_message
+            from bot.bot import handle_incoming_message
             try:
                 updated_orders, bot_messages = handle_incoming_message(
                     game=game,

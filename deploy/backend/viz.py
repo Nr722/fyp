@@ -7,6 +7,13 @@ class RichRenderer(Renderer):
         super().__init__(game, **kwargs)
         self.adjudication_data = adjudication_data or {}
 
+    def _set_influence(self, xml_map, loc, power_name, has_supply_center=False):
+        # Override influence to only color based on game JSON "centers"
+        # If it's pure influence (has_supply_center=False), we ignore it so it doesn't prematurely color map
+        if not has_supply_center:
+            return xml_map
+        return super()._set_influence(xml_map, loc, power_name, has_supply_center)
+
     def _get_order_status(self, src_loc, power_name):
         if not self.adjudication_data:
             return []
