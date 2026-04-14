@@ -11,10 +11,12 @@ from dotenv import load_dotenv
 import os
 import json
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from bot.models import BotTurnResponse, BotReactionResponse  # Import the model above
 from diplomacy.engine.game import Game
 from bot.random_bot import get_random_bot_orders
+from bot.db import add_agreement, get_trust_history
+from function_tools.move_validator import get_move_validator_tool
 load_dotenv()
 
 # Dictionary to store chat histories for each bot in each game
@@ -25,6 +27,37 @@ def get_model(model_name="models/gemini-3.1-flash-lite-preview"):
     # We use a standard chat model and will handle the parsing manually if needed, 
     # or use a model that does support these features.
     return ChatGoogleGenerativeAI(model=model_name, google_api_key=os.getenv("GEMINI_API_KEY"))
+
+def invoke_agent_loop(model, tools, history, bot_name="Bot"):
+    """
+    Invokes the model with exponential backoff and automatically handles tool calls in a loop
+    until the model returns a final text/JSON response.
+    """
+    tool_map = {t.name: t for t in tools}
+    model_with_tools = model.bind_tools(tools)
+    
+    while True:
+        response = invoke_with_retry(model_with_tools, history, bot_name=bot_name)
+        history.append(response)
+        
+        # If the LLM called a tool
+        if hasattr(response, 'tool_calls') and len(response.tool_calls) > 0:
+            for tool_call in response.tool_calls:
+                name = tool_call['name']
+                print(f"[{bot_name} Tool Call]: {name}({tool_call['args']})")
+                
+                if name in tool_map:
+                    args = tool_call['args']
+                    # Sometimes simple values are wrapped in dicts with keys matching param names
+                    # extract the list if it's there
+                    if 'orders' in args:
+                        tool_result = tool_map[name].invoke(args)
+                    else:
+                        tool_result = tool_map[name].invoke(args)
+                    
+                    history.append(ToolMessage(tool_call_id=tool_call['id'], content=str(tool_result)))
+        else:
+            return response
 
 def invoke_with_retry(model, history, max_retries=4, initial_delay=5, bot_name="Bot"):
     """Invokes the model with exponential backoff for RateLimit errors."""
@@ -63,6 +96,27 @@ def get_ai_bot_orders(game, bot_name: str, game_id: str = None):
         
     valid_orders = {loc: all_orders_dict.get(loc, []) for loc in orderable_locs}
 
+    trust_history_text = ""
+    if game_id:
+        from bot.db import get_connection
+        try:
+            # Quick hack to get all past agreements for this bot in this game
+            conn = get_connection()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT agreed_with, agreement, followed, phase_made
+                    FROM trust_ledger WHERE game_id=%s AND bot_country=%s AND followed IS NOT NULL
+                """, (game_id, bot_name))
+                history_rows = cur.fetchall()
+            conn.close()
+            if history_rows:
+                trust_history_text = "\nTRUST LEDGER (Past agreements and whether the other country followed them):\n"
+                for row in history_rows:
+                    status = "FOLLOWED" if row[2] else "BROKEN"
+                    trust_history_text += f"- {row[0]} {status} agreement made in {row[3]}: '{row[1]}'\n"
+        except Exception as e:
+            pass
+
     prompt = f"""
     You are an expert Diplomacy player controlling {bot_name}.
     Current Phase: {phase}
@@ -71,6 +125,9 @@ def get_ai_bot_orders(game, bot_name: str, game_id: str = None):
     1. Provide exactly ONE order for every location listed.
     2. Choose ONLY from the 'Valid Options' provided.
     3. If you want to collaborate with other players, you can include messages to them. But you MUST still provide your orders based on the current game state.    
+    
+    {trust_history_text}
+    
     Available Locations and Valid Options:
     {json.dumps(valid_orders, indent=2)}
 
@@ -86,14 +143,17 @@ def get_ai_bot_orders(game, bot_name: str, game_id: str = None):
         chat_histories[session_key] = []
 
     history = chat_histories[session_key]
+    
+    move_validator_tool = get_move_validator_tool(game)
+    tools = [move_validator_tool]
     model = get_model()
     
     try:
         # Add the prompt to history
         history.append(HumanMessage(content=prompt))
         
-        # Use retry mechanism with exponential backoff
-        response = invoke_with_retry(model, history, bot_name=bot_name)
+        # Use our new agent loop
+        response = invoke_agent_loop(model, tools, history, bot_name=bot_name)
         
         # Parse the response text
         raw_text = response.content

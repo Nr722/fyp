@@ -12,12 +12,17 @@ from diplomacy.engine.game import Game
 from diplomacy.engine.message import Message
 
 # Import from backend module
+from bot.db import init_db
 from bot.bot import get_bot_orders
 from bot.handle_messages import handle_incoming_message
 from bot.random_bot import get_random_bot_orders
 from viz import generate_history_svg
 
 app = FastAPI()
+
+@app.on_event("startup")
+def startup_event():
+    init_db()
 
 # In-memory store for games
 games: Dict[str, Game] = {}
@@ -214,6 +219,9 @@ def process_turn(game_id: str, req: ProcessTurnRequest):
         if hasattr(bot, 'print'):
             bot.print = original_print
 
+    from bot.evaluator import evaluate_agreements
+    evaluate_agreements(game_id, game)
+
     prev_phase = game.get_current_phase()
     game.process()
     
@@ -280,7 +288,7 @@ def process_ai_reaction_task(game_id: str, sender: str, recipient: str, message:
                 original_print(*args, **kwargs)
             
             bot.print = patched_print
-            from bot.bot import handle_incoming_message
+            from bot.handle_messages import handle_incoming_message
             try:
                 updated_orders, bot_messages = handle_incoming_message(
                     game=game,

@@ -2,7 +2,9 @@ import json
 import re
 from langchain_core.messages import HumanMessage, AIMessage
 from bot.models import BotReactionResponse
-from bot.bot import chat_histories, get_model, invoke_with_retry
+from bot.bot import chat_histories, get_model, invoke_agent_loop
+from bot.db import add_agreement
+from function_tools.move_validator import get_move_validator_tool
 
 def handle_incoming_message(game, bot_name: str, sender: str, message: str, game_id: str, recipient: str = None):
     """
@@ -27,6 +29,26 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     if recipient == "GLOBAL":
         context_str = f"a GLOBAL message (sent to everyone)"
 
+    trust_history_text = ""
+    if game_id:
+        from bot.db import get_connection
+        try:
+            conn = get_connection()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT agreed_with, agreement, followed, phase_made
+                    FROM trust_ledger WHERE game_id=%s AND bot_country=%s AND agreed_with=%s AND followed IS NOT NULL
+                """, (game_id, bot_name, sender.upper()))
+                history_rows = cur.fetchall()
+            conn.close()
+            if history_rows:
+                trust_history_text = f"\nTRUST LEDGER (Past agreements with {sender} and whether they followed them):\n"
+                for row in history_rows:
+                    status = "FOLLOWED" if row[2] else "BROKEN"
+                    trust_history_text += f"- {sender} {status} agreement made in {row[3]}: '{row[1]}'\n"
+        except Exception as e:
+            pass
+
     prompt = f"""
     You are an expert Diplomacy player controlling {bot_name}.
     Current Phase: {phase}
@@ -37,8 +59,13 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     Your current pending orders are:
     {current_orders}
     
+    {trust_history_text}
+    
     Do you want to reply to this message? If it was a GLOBAL message, you might want to reply to 'GLOBAL'.
     If it was a PRIVATE message, you should reply to '{sender}'.
+    
+    IMPORTANT ABOUT AGREEMENTS:
+    Only include something in 'agreements' if the message from {sender} explicitly proposed an agreement AND you are now explicitly ACCEPTING it in your reply. Do NOT hallucinate past agreements or log proposals you are just making. Only log mutual pacts that are being confirmed RIGHT NOW.
     
     Do you want to change your orders based on this new information?
     If you want to change your orders, provide the FULL list of updated orders.
@@ -51,14 +78,16 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     {BotReactionResponse.model_json_schema()}
     """
     
+    move_validator_tool = get_move_validator_tool(game)
+    tools = [move_validator_tool]
     model = get_model()
     
     try:
         # Add the human message to history
         history.append(HumanMessage(content=prompt))
         
-        # Use retry mechanism with exponential backoff
-        response = invoke_with_retry(model, history, bot_name=bot_name)
+        # Use our new agent loop
+        response = invoke_agent_loop(model, tools, history, bot_name=bot_name)
         
         # Parse text
         raw_text = response.content
@@ -103,6 +132,23 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
                     updated_orders.append(order_str)
                 elif loc and valid_orders.get(loc):
                     updated_orders.append(valid_orders[loc][0])
+                    
+        # Extract agreements
+        agreements_data = data.agreements
+        if agreements_data is not None:
+            for item in agreements_data:
+                if item.agreed_with and item.agreement:
+                    try:
+                        add_agreement(
+                            game_id=game_id,
+                            bot_country=bot_name,
+                            agreed_with=item.agreed_with.upper(),
+                            agreement=item.agreement,
+                            phase_made=phase
+                        )
+                        print(f"[{bot_name}] Added agreement with {item.agreed_with}: {item.agreement}")
+                    except Exception as db_err:
+                        print(f"Failed to save agreement to DB: {db_err}")
                         
         return updated_orders, messages
         
