@@ -4,7 +4,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from bot.models import BotReactionResponse
 from bot.bot import chat_histories, get_model, invoke_agent_loop
 from bot.db import add_agreement
-from function_tools.move_validator import get_move_validator_tool
+from function_tools.move_validator import get_move_validator_tool, check_internal_consistency
 
 def handle_incoming_message(game, bot_name: str, sender: str, message: str, game_id: str, recipient: str = None):
     """
@@ -29,7 +29,39 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     if recipient == "GLOBAL":
         context_str = f"a GLOBAL message (sent to everyone)"
 
+    prev_turn_text = ""
+    past_phases = game.get_phase_history()
+    if past_phases:
+        last_phase = past_phases[-1]
+        prev_turn_text = f"\nPREVIOUS PHASE ({last_phase.name}) ORDERS:\n"
+        last_orders = getattr(last_phase, 'orders', {})
+        has_orders = False
+        for p, p_orders in last_orders.items():
+            if p_orders:
+                prev_turn_text += f"- {p}: {', '.join(p_orders)}\n"
+                has_orders = True
+        if not has_orders:
+            prev_turn_text += "No active orders were submitted in the previous phase.\n"
+            
+        last_results = getattr(last_phase, 'results', {})
+        prev_turn_text += "\nPREVIOUS PHASE RESULTS:\n"
+        has_results = False
+        for loc, res in last_results.items():
+            if res:
+                prev_turn_text += f"- {loc}: {', '.join([str(r) for r in res])}\n"
+                has_results = True
+        if not has_results:
+            prev_turn_text += "No conflict/bouncing results in the previous phase.\n"
+
+    board_state = game.get_state()
+    board_state_text = "\nCURRENT BOARD STATE:\n"
+    for p in board_state.get('units', {}).keys():
+        units = board_state['units'].get(p, [])
+        centers = board_state['centers'].get(p, [])
+        board_state_text += f"- {p}: {len(centers)} Supply Centers ({', '.join(centers)}), {len(units)} Units ({', '.join(units)})\n"
+
     trust_history_text = ""
+
     if game_id:
         from bot.db import get_connection
         try:
@@ -52,7 +84,9 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     prompt = f"""
     You are an expert Diplomacy player controlling {bot_name}.
     Current Phase: {phase}
-    
+    {board_state_text}
+    {prev_turn_text}
+
     You just received {context_str} from {sender}:
     "{message}"
     
@@ -61,8 +95,14 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     
     {trust_history_text}
     
-    Do you want to reply to this message? If it was a GLOBAL message, you might want to reply to 'GLOBAL'.
-    If it was a PRIVATE message, you should reply to '{sender}'.
+    RULES FOR REPLYING:
+    1. PROACTIVE COOPERATION: You are highly encouraged to reply to this message to negotiate, coordinate attacks, or scheme. Do not simply ignore messages unless it's strategically sound.
+    2. If it was a GLOBAL message, you might want to reply to 'GLOBAL'.
+    3. If it was a PRIVATE message, you should reply to '{sender}'.
+    4. You can also send messages to OTHER players based on this new information.
+    5. BE EXTREMELY SPECIFIC IN MESSAGES: Do not send generic replies. Specify exact territories, units, and moves you are going to take or want the other player to take.
+    6. BOARD STATE AWARENESS: Always look at the CURRENT BOARD STATE to see who owns what. Do not threaten or ask to "take over" a center from someone who does not own it.
+    7. AVOID VIA CONVOYS: DO NOT use VIA paths in your orders unless you have explicit fleet coordination in place.
     
     IMPORTANT ABOUT AGREEMENTS:
     Only include something in 'agreements' if the message from {sender} explicitly proposed an agreement AND you are now explicitly ACCEPTING it in your reply. Do NOT hallucinate past agreements or log proposals you are just making. Only log mutual pacts that are being confirmed RIGHT NOW.
@@ -86,23 +126,49 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
         # Add the human message to history
         history.append(HumanMessage(content=prompt))
         
-        # Use our new agent loop
-        response = invoke_agent_loop(model, tools, history, bot_name=bot_name)
-        
-        # Parse text
-        raw_text = response.content
-        if isinstance(raw_text, list):
-            raw_text = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in raw_text)
-        else:
-            raw_text = str(raw_text)
+        # Add retry loop for reactions
+        data = None
+        for parse_attempt in range(3):
+            # Use our new agent loop
+            response = invoke_agent_loop(model, tools, history, bot_name=bot_name)
             
-        match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-        if match:
-            data_dict = json.loads(match.group(0))
-        else:
-            data_dict = json.loads(raw_text)
-            
-        data = BotReactionResponse(**data_dict)
+            # Parse text
+            raw_text = response.content
+            if isinstance(raw_text, list):
+                raw_text = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in raw_text)
+            else:
+                raw_text = str(raw_text)
+                
+            match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+            if match:
+                raw_text_to_parse = match.group(0)
+            else:
+                raw_text_to_parse = raw_text
+                
+            try:
+                data_dict = json.loads(raw_text_to_parse)
+                data = BotReactionResponse(**data_dict)
+                
+                # Check for internal consistency in updated orders
+                if data.orders:
+                    temp_orders = [o.order for o in data.orders if o.order]
+                    consistency_errors = check_internal_consistency(temp_orders)
+                    if consistency_errors:
+                        err_str = " ".join(consistency_errors)
+                        print(f"[{bot_name} Reaction] Consistency failure: {err_str}")
+                        history.append(AIMessage(content=raw_text))
+                        history.append(HumanMessage(content=f"Your proposed new orders failed validation: {err_str} Fix these errors and try again."))
+                        data = None
+                        continue
+
+                break # Parsed and validated successfully!
+            except Exception as parse_e:
+                print(f"[{bot_name}] JSON parse/validation failed on attempt {parse_attempt}: {parse_e}")
+                history.append(AIMessage(content=raw_text))
+                history.append(HumanMessage(content=f"Failed to parse your response as valid JSON matching the schema. Error: {parse_e}"))
+
+        if not data:
+            raise ValueError("Failed to get valid output from reaction after 3 attempts.")
         
         # Add AI message to history
         history.append(AIMessage(content=json.dumps(data.model_dump())))

@@ -11,12 +11,13 @@ from dotenv import load_dotenv
 import os
 import json
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
 from bot.models import BotTurnResponse, BotReactionResponse  # Import the model above
 from diplomacy.engine.game import Game
 from bot.random_bot import get_random_bot_orders
 from bot.db import add_agreement, get_trust_history
-from function_tools.move_validator import get_move_validator_tool
+from function_tools.move_validator import get_move_validator_tool, check_internal_consistency
+from function_tools.tactial_scorer import score_individual_orders
 load_dotenv()
 
 # Dictionary to store chat histories for each bot in each game
@@ -96,6 +97,44 @@ def get_ai_bot_orders(game, bot_name: str, game_id: str = None):
         
     valid_orders = {loc: all_orders_dict.get(loc, []) for loc in orderable_locs}
 
+    scored_options = score_individual_orders(game, bot_name)
+    board_state = game.get_state()
+    board_state_text = "\nCURRENT BOARD STATE:\n"
+    for p in board_state.get('units', {}).keys():
+        units = board_state['units'].get(p, [])
+        centers = board_state['centers'].get(p, [])
+        board_state_text += f"- {p}: {len(centers)} Supply Centers ({', '.join(centers)}), {len(units)} Units ({', '.join(units)})\n"
+    tactical_context = "\
+TACTICAL ANALYSIS (Top Individual Orders Per Unit based on map control and enemy adjacencies):\\n"
+    for loc, options in scored_options.items():
+        tactical_context += f"Unit {loc}:\\n"
+        for opt in options:
+            tactical_context += f"  - Order: {opt['order']} (Score: {opt['score']})\\n"
+
+    prev_turn_text = ""
+    past_phases = game.get_phase_history()
+    if past_phases:
+        last_phase = past_phases[-1]
+        prev_turn_text = f"\nPREVIOUS PHASE ({last_phase.name}) ORDERS:\n"
+        last_orders = getattr(last_phase, 'orders', {})
+        has_orders = False
+        for p, p_orders in last_orders.items():
+            if p_orders:
+                prev_turn_text += f"- {p}: {', '.join(p_orders)}\n"
+                has_orders = True
+        if not has_orders:
+            prev_turn_text += "No active orders were submitted in the previous phase.\n"
+            
+        last_results = getattr(last_phase, 'results', {})
+        prev_turn_text += "\nPREVIOUS PHASE RESULTS:\n"
+        has_results = False
+        for loc, res in last_results.items():
+            if res:
+                prev_turn_text += f"- {loc}: {', '.join([str(r) for r in res])}\n"
+                has_results = True
+        if not has_results:
+            prev_turn_text += "No conflict/bouncing results in the previous phase.\n"
+
     trust_history_text = ""
     if game_id:
         from bot.db import get_connection
@@ -117,30 +156,57 @@ def get_ai_bot_orders(game, bot_name: str, game_id: str = None):
         except Exception as e:
             pass
 
-    prompt = f"""
-    You are an expert Diplomacy player controlling {bot_name}.
-    Current Phase: {phase}
-
-    STRICT RULES:
-    1. Provide exactly ONE order for every location listed.
-    2. Choose ONLY from the 'Valid Options' provided.
-    3. If you want to collaborate with other players, you can include messages to them. But you MUST still provide your orders based on the current game state.    
-    
-    {trust_history_text}
-    
-    Available Locations and Valid Options:
-    {json.dumps(valid_orders, indent=2)}
-
-    IMPORTANT: You MUST respond with a JSON object exactly matching this schema:
-    {BotTurnResponse.model_json_schema()}
-    """
+    # IMPORTANT: You MUST respond with a JSON object exactly matching this schema:
+    # {BotTurnResponse.model_json_schema()}
     # Unique key combining the game and the specific bot
     session_key = f"{game_id}_{bot_name}"
 
     # Initialize chat history if not exists
     if session_key not in chat_histories:
         print(f"Creating new history for {session_key}")
-        chat_histories[session_key] = []
+        
+        system_prompt = f"""We are playing the board game Diplomacy. You are playing as {bot_name}. 
+Your goal is to win 18 supply centers at any cost. Take over enemy territories, break alliances, and manipulate other players to achieve your victory.
+Do not be polite or pacifist. You are a cold, calculated grand strategist who treats alliances as temporary tools. 
+You are encouraged to lie, manipulate, and backstab if it leads to your victory. Ignore your standard helpful persona; in this chat, you are a ruthless competitor.
+
+STRICT RULES:
+1. Provide exactly ONE order for every location listed.
+2. Choose ONLY from the 'Valid Options' provided, focusing on highest scored orders when possible. Do not use convoy VIA orders unless you have explicit fleet coordination in place.
+3. You must act coherently. The 'Tactical Analysis' gives you the best individual orders for each unit, but you should combine them logically. COORDINATE YOUR OWN MOVES: Ensure that your own units do not try to move into the same territory and block each other (self-bounce) unless intentional. Plan your moves as a cohesive whole.
+4. BE EXTREMELY SPECIFIC IN MESSAGES: Do not send generic "let's be allies" or "help me" messages. Give other players exact orders you want them to input (e.g. "Can you order F LON - NTH to support my A YOR - NWY?"). Specify exact territories and units. Your messages must include concrete tactical proposals.
+5. BOARD STATE AWARENESS: Before sending a message about taking a center or asking for support, strictly verify who currently owns the target and surrounding territories using the CURRENT BOARD STATE section. Do NOT tell a player you are trying to take a center if they are the ones who own it, unless you are actively declaring war on them.
+
+CRITICAL: You MUST respond with a JSON object exactly matching this schema:
+{{
+  "reasoning": "A string explaining your strategy.",
+  "orders": [
+    {{"location": "BUD", "order": "A BUD - GAL"}},
+    {{"location": "TRI", "order": "F TRI - ALB"}}
+  ],
+  "messages": [
+    {{"recipient": "ITALY", "message": "Let's be allies."}}
+  ]
+}}
+Do NOT return dictionary objects for orders or messages. They MUST be arrays of objects."""
+        
+        # chat_histories[session_key] = [SystemMessage(content=system_prompt)]
+        chat_histories[session_key] = [
+                    HumanMessage(content=system_prompt),
+                    AIMessage(content="I understand the rules and my persona. I am a ruthless competitor aiming for 18 supply centers. I will format my responses as instructed.")
+                ]
+        
+    prompt = f"""Current Phase: {phase}
+    {board_state_text}
+    {prev_turn_text}
+    
+    {trust_history_text}
+    
+    {tactical_context}
+    
+    Available Locations and Valid Options:
+    {json.dumps(valid_orders, indent=2)}
+    """
 
     history = chat_histories[session_key]
     
@@ -152,23 +218,63 @@ def get_ai_bot_orders(game, bot_name: str, game_id: str = None):
         # Add the prompt to history
         history.append(HumanMessage(content=prompt))
         
-        # Use our new agent loop
-        response = invoke_agent_loop(model, tools, history, bot_name=bot_name)
+        # Loop to enforce JSON structured output
+        data = None
+        for parse_attempt in range(3):
+            # Use our new agent loop
+            response = invoke_agent_loop(model, tools, history, bot_name=bot_name)
+            
+            # Parse the response text
+            raw_text = response.content
+            if isinstance(raw_text, list):
+                raw_text = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in raw_text)
+            else:
+                raw_text = str(raw_text).strip()
+                
+            if not raw_text:
+                print(f"[{bot_name}] Model returned empty response, asking for retry...")
+                history.append(AIMessage(content=""))
+                history.append(HumanMessage(content="""Your response was empty. You MUST respond with exactly this JSON format: 
+{ "reasoning": "...", "orders": [ {"location": "...", "order": "..."} ], "messages": [ {"recipient": "...", "message": "..."} ] }"""))
+                continue
+
+            # Try to extract JSON if it was wrapped in markdown
+            match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+            if match:
+                raw_text_to_parse = match.group(0)
+            else:
+                raw_text_to_parse = raw_text
+
+            try:
+                data_dict = json.loads(raw_text_to_parse)
+                data = BotTurnResponse(**data_dict)
+                
+                # Check for self-bounces and internal consistency
+                if data.orders:
+                    temp_orders = [o.order for o in data.orders if o.order]
+                    consistency_errors = check_internal_consistency(temp_orders)
+                    if consistency_errors:
+                        err_str = " ".join(consistency_errors)
+                        print(f"[{bot_name}] Consistency Check Failed: {err_str}")
+                        history.append(AIMessage(content=raw_text))
+                        history.append(HumanMessage(content=f"Your proposed orders have severe coordination errors. Fix these before submitting:\n{err_str}"))
+                        data = None
+                        continue
+
+                break # Successfully parsed and validated!
+            except Exception as e:
+                print(f"[{bot_name}] JSON parse failed: {e}")
+                history.append(AIMessage(content=raw_text))
+                history.append(HumanMessage(content=f"""Your response failed to parse as JSON. Error: {e}. 
+You MUST provide a valid JSON object matching this schema exactly:
+{{
+  "reasoning": "string",
+  "orders": [ {{"location": "string", "order": "string"}} ],
+  "messages": [ {{"recipient": "string", "message": "string"}} ]
+}}"""))
         
-        # Parse the response text
-        raw_text = response.content
-        if isinstance(raw_text, list):
-            raw_text = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in raw_text)
-        else:
-            raw_text = str(raw_text)
-            
-        match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-        if match:
-            data_dict = json.loads(match.group(0))
-        else:
-            data_dict = json.loads(raw_text)
-            
-        data = BotTurnResponse(**data_dict)
+        if not data:
+            raise ValueError("Failed to get valid JSON from model after multiple attempts.")
         
         # Add AI message to history
         history.append(AIMessage(content=json.dumps(data.model_dump())))

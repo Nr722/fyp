@@ -26,7 +26,44 @@ def init_db():
                     followed BOOLEAN
                 )
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS game_messages (
+                    id SERIAL PRIMARY KEY,
+                    game_id VARCHAR(255) NOT NULL,
+                    sender VARCHAR(50) NOT NULL,
+                    recipient VARCHAR(50) NOT NULL,
+                    message TEXT NOT NULL,
+                    phase VARCHAR(50) NOT NULL,
+                    time_sent TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
         conn.commit()
+    finally:
+        conn.close()
+
+def save_message(game_id: str, sender: str, recipient: str, message: str, phase: str):
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO game_messages (game_id, sender, recipient, message, phase)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (game_id, sender, recipient, message, phase))
+        conn.commit()
+    finally:
+        conn.close()
+
+def get_game_messages(game_id: str):
+    conn = get_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT sender, recipient, message, phase, time_sent
+                FROM game_messages
+                WHERE game_id = %s
+                ORDER BY time_sent ASC, id ASC
+            """, (game_id,))
+            return cur.fetchall()
     finally:
         conn.close()
 

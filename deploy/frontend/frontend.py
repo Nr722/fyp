@@ -314,7 +314,7 @@ if not game_state["is_game_done"]:
             st.write("Gathering orders from all other players...")
             process_res = requests.post(
                 f"{API_URL}/game/{st.session_state.game_id}/process",
-                json={"human_power": HUMAN_POWER}
+                json={"human_power": HUMAN_POWER, "phase": current_phase}
             )
             
             if process_res.status_code == 200:
@@ -344,7 +344,8 @@ with col2:
         st.rerun()
 
 # Automatically refresh page every 15 seconds to fetch new messages and replies
-st_autorefresh(interval=15000, key="chat_autorefresh")
+if not st.session_state.get('human_orders_submitted', False):
+    st_autorefresh(interval=15000, key="chat_autorefresh")
 
 msg_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/messages", params={"power": HUMAN_POWER})
 if msg_res.status_code == 200:
@@ -440,30 +441,39 @@ with chat_container:
                     unsafe_allow_html=True
                 )
 
-with st.form(key=f"chat_form_{selected_chat}", clear_on_submit=True):
-    user_input = st.text_input("Message:", key=f"input_{selected_chat}", placeholder=f"Message {selected_chat}...")
-    
-    if st.form_submit_button("Send"):
-        if user_input.strip():
-            # Send message and don't block
-            send_res = requests.post(
-                f"{API_URL}/game/{st.session_state.game_id}/messages",
-                json={
-                    "sender": HUMAN_POWER,
-                    "recipient": selected_chat,
-                    "message": user_input,
-                    "phase": current_phase
-                }
-            )
-            if send_res.status_code == 200:
-                st.toast("Message sent!", icon="✅")
-                # Immediately assume we read our own just-sent message
-                # (plus whatever else was already in that channel)
-                # But actually, the background task might add messages. Our count will sync on rerun.
-                st.session_state.read_counts[selected_chat] = len(conversations[selected_chat]) + 1
-                st.rerun()
-            else:
-                st.error("Failed to send message.")
+# We don't use forms because nested buttons in forms cause re-render bugs
+
+def submit_chat():
+    st.session_state[f"submit_{selected_chat}"] = st.session_state[f"input_box_{selected_chat}"]
+    st.session_state[f"input_box_{selected_chat}"] = ""
+
+user_input_placeholder = st.empty()
+user_input_placeholder.text_input("Message:", key=f"input_box_{selected_chat}", placeholder=f"Message {selected_chat}...", on_change=submit_chat)
+
+
+if f"submit_{selected_chat}" in st.session_state:
+    user_input = st.session_state.pop(f"submit_{selected_chat}")
+else:
+    user_input = None
+
+
+if st.button("Send Message", key=f"send_btn_{selected_chat}") or user_input:
+    if user_input.strip():
+        send_res = requests.post(
+            f"{API_URL}/game/{st.session_state.game_id}/messages",
+            json={
+                "sender": HUMAN_POWER,
+                "recipient": selected_chat,
+                "message": user_input,
+                "phase": current_phase
+            }
+        )
+        if send_res.status_code == 200:
+            st.toast("Message sent!", icon="✅")
+            st.session_state.read_counts[selected_chat] = len(conversations[selected_chat]) + 1
+            st.rerun()
+        else:
+            st.error("Failed to send message.")
 
 # --- Game Over ---
 if game_state["is_game_done"]:
