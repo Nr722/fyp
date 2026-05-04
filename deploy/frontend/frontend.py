@@ -25,7 +25,7 @@ def check_rate_limits():
             
             for event in new_events:
                 st.toast(
-                    f"⚠️ Rate limit hit for {event['bot_name']}! Retrying in {event['delay']}s (Attempt {event['attempt']})",
+                    f" Rate limit hit for {event['bot_name']}! Retrying in {event['delay']}s (Attempt {event['attempt']})",
                     icon="⏳"
                 )
             

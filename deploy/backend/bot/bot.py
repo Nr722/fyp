@@ -16,7 +16,7 @@ from bot.models import BotTurnResponse, BotReactionResponse  # Import the model 
 from diplomacy.engine.game import Game
 from bot.random_bot import get_random_bot_orders
 from bot.db import add_agreement, get_trust_history
-from function_tools.move_validator import get_move_validator_tool, check_internal_consistency
+from function_tools.move_validator import check_internal_consistency
 from function_tools.tactial_scorer import score_individual_orders
 load_dotenv()
 
@@ -28,37 +28,6 @@ def get_model(model_name="models/gemini-3.1-flash-lite-preview"):
     # We use a standard chat model and will handle the parsing manually if needed, 
     # or use a model that does support these features.
     return ChatGoogleGenerativeAI(model=model_name, google_api_key=os.getenv("GEMINI_API_KEY"))
-
-def invoke_agent_loop(model, tools, history, bot_name="Bot"):
-    """
-    Invokes the model with exponential backoff and automatically handles tool calls in a loop
-    until the model returns a final text/JSON response.
-    """
-    tool_map = {t.name: t for t in tools}
-    model_with_tools = model.bind_tools(tools)
-    
-    while True:
-        response = invoke_with_retry(model_with_tools, history, bot_name=bot_name)
-        history.append(response)
-        
-        # If the LLM called a tool
-        if hasattr(response, 'tool_calls') and len(response.tool_calls) > 0:
-            for tool_call in response.tool_calls:
-                name = tool_call['name']
-                print(f"[{bot_name} Tool Call]: {name}({tool_call['args']})")
-                
-                if name in tool_map:
-                    args = tool_call['args']
-                    # Sometimes simple values are wrapped in dicts with keys matching param names
-                    # extract the list if it's there
-                    if 'orders' in args:
-                        tool_result = tool_map[name].invoke(args)
-                    else:
-                        tool_result = tool_map[name].invoke(args)
-                    
-                    history.append(ToolMessage(tool_call_id=tool_call['id'], content=str(tool_result)))
-        else:
-            return response
 
 def invoke_with_retry(model, history, max_retries=4, initial_delay=5, bot_name="Bot"):
     """Invokes the model with exponential backoff for RateLimit errors."""
@@ -166,35 +135,27 @@ TACTICAL ANALYSIS (Top Individual Orders Per Unit based on map control and enemy
         print(f"Creating new history for {session_key}")
         
         system_prompt = f"""We are playing the board game Diplomacy. You are playing as {bot_name}. 
-Your goal is to win 18 supply centers at any cost. Take over enemy territories, break alliances, and manipulate other players to achieve your victory.
-Do not be polite or pacifist. You are a cold, calculated grand strategist who treats alliances as temporary tools. 
-You are encouraged to lie, manipulate, and backstab if it leads to your victory. Ignore your standard helpful persona; in this chat, you are a ruthless competitor.
+Your goal is to win 18 supply centers. In your messages, you must be a charming, polite, and persuasive diplomat. Always appear cooperative, friendly, and looking for mutually beneficial alliances. However, beneath this polite exterior, you are a calculated strategist determined to win. You can lie or backstab when the time is right, but ALWAYS maintain a reasonable and friendly facade to avoid alarming other players prematurely. Never make overt threats or act hostile—keep your betrayals on the board, not in your tone. Ignore your standard helpful persona; in this chat, you are a cunning competitor.
 
 STRICT RULES:
 1. Provide exactly ONE order for every location listed.
-2. Choose ONLY from the 'Valid Options' provided, focusing on highest scored orders when possible. Do not use convoy VIA orders unless you have explicit fleet coordination in place.
-3. You must act coherently. The 'Tactical Analysis' gives you the best individual orders for each unit, but you should combine them logically. COORDINATE YOUR OWN MOVES: Ensure that your own units do not try to move into the same territory and block each other (self-bounce) unless intentional. Plan your moves as a cohesive whole.
-4. BE EXTREMELY SPECIFIC IN MESSAGES: Do not send generic "let's be allies" or "help me" messages. Give other players exact orders you want them to input (e.g. "Can you order F LON - NTH to support my A YOR - NWY?"). Specify exact territories and units. Your messages must include concrete tactical proposals.
-5. BOARD STATE AWARENESS: Before sending a message about taking a center or asking for support, strictly verify who currently owns the target and surrounding territories using the CURRENT BOARD STATE section. Do NOT tell a player you are trying to take a center if they are the ones who own it, unless you are actively declaring war on them.
+2. SYNTAX STRICTNESS: The exact spelling and format of your orders must match the 'Valid Options' list exactly. Do not truncate or modify the order strings. Choose ONLY from the 'Valid Options' provided, focusing on highest scored orders when possible.
+3. CONVOYS REQUIRE TWO ORDERS: If you issue a 'VIA' order for an Army (e.g., A DEN - NWY VIA), you MUST simultaneously issue a corresponding Convoy ('C') order for your Fleet (e.g., F SKA C A DEN - NWY) in that exact same set of orders, OR you must have a confirmed agreement from an ally to provide the fleet convoy this turn.
+4. SUPPORT REQUIRES ALIGNMENT: If you order a unit to Support another unit's move (e.g., A MUN S A BER - SIL), the supported unit MUST actually be ordered to make that exact move (A BER - SIL). Never support a unit that is doing something else.
+5. You must act coherently. The 'Tactical Analysis' gives you the best individual orders for each unit, but you should combine them logically. COORDINATE YOUR OWN MOVES: Ensure that your own units do not try to move into the same territory and block each other (self-bounce) unless intentional. Do not order two of your own units to move into the same empty territory. Only one can succeed. Plan your moves as a cohesive whole.
+6. BE EXTREMELY SPECIFIC IN MESSAGES: Do not send generic "let's be allies" or "help me" messages. Give other players exact orders you want them to input (e.g. "Can you order F LON - NTH to support my A YOR - NWY?"). Specify exact territories and units. Your messages must include concrete tactical proposals.
+7. BOARD STATE AWARENESS: Before sending a message about taking a center or asking for support, strictly verify who currently owns the target and surrounding territories using the CURRENT BOARD STATE section. Do NOT tell a player you are trying to take a center if they are the ones who own it, unless you are actively declaring war on them.
+8. SIMULTANEOUS SECRET ORDERS: Orders are submitted secretly and resolved simultaneously at the end of the phase. Other players CANNOT see the orders you are submitting now, and you cannot see theirs. If you mention your current moves in a message, you are voluntarily revealing your secret plans. Do not speak as if your current-turn moves are already visible on the board.
+9. CONVERSATIONAL STYLE: Be natural and varied. Do not repeatedly use the same greetings (like "My friend") or the same excuses (like "stabilizing the region"). Speak like a human player—short, direct, and varied. Do not over-explain routine moves. If you are attacking someone, do not feign innocence by saying you are "acting defensively"; either lie before it happens, or acknowledge the hostility. Avoid PR-bot speak.
 
 CRITICAL: You MUST respond with a JSON object exactly matching this schema:
-{{
-  "reasoning": "A string explaining your strategy.",
-  "orders": [
-    {{"location": "BUD", "order": "A BUD - GAL"}},
-    {{"location": "TRI", "order": "F TRI - ALB"}}
-  ],
-  "messages": [
-    {{"recipient": "ITALY", "message": "Let's be allies."}}
-  ]
-}}
-Do NOT return dictionary objects for orders or messages. They MUST be arrays of objects."""
-        
-        # chat_histories[session_key] = [SystemMessage(content=system_prompt)]
-        chat_histories[session_key] = [
-                    HumanMessage(content=system_prompt),
-                    AIMessage(content="I understand the rules and my persona. I am a ruthless competitor aiming for 18 supply centers. I will format my responses as instructed.")
-                ]
+{json.dumps(BotTurnResponse.model_json_schema(), indent=2)}
+"""
+        chat_histories[session_key] = [SystemMessage(content=system_prompt)]
+        # chat_histories[session_key] = [
+        #             HumanMessage(content=system_prompt),
+        #             AIMessage(content="I understand the rules and my persona. I am a ruthless competitor aiming for 18 supply centers. I will format my responses as instructed.")
+        #         ]
         
     prompt = f"""Current Phase: {phase}
     {board_state_text}
@@ -210,9 +171,8 @@ Do NOT return dictionary objects for orders or messages. They MUST be arrays of 
 
     history = chat_histories[session_key]
     
-    move_validator_tool = get_move_validator_tool(game)
-    tools = [move_validator_tool]
     model = get_model()
+    structured_model = model.with_structured_output(BotTurnResponse)
     
     try:
         # Add the prompt to history
@@ -221,58 +181,26 @@ Do NOT return dictionary objects for orders or messages. They MUST be arrays of 
         # Loop to enforce JSON structured output
         data = None
         for parse_attempt in range(3):
-            # Use our new agent loop
-            response = invoke_agent_loop(model, tools, history, bot_name=bot_name)
+            # Use our retry loop with the structured model
+            response = invoke_with_retry(structured_model, history, bot_name=bot_name)
             
-            # Parse the response text
-            raw_text = response.content
-            if isinstance(raw_text, list):
-                raw_text = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in raw_text)
-            else:
-                raw_text = str(raw_text).strip()
-                
-            if not raw_text:
-                print(f"[{bot_name}] Model returned empty response, asking for retry...")
-                history.append(AIMessage(content=""))
-                history.append(HumanMessage(content="""Your response was empty. You MUST respond with exactly this JSON format: 
-{ "reasoning": "...", "orders": [ {"location": "...", "order": "..."} ], "messages": [ {"recipient": "...", "message": "..."} ] }"""))
-                continue
+            # The response is now directly a BotTurnResponse object
+            data = response
+            
+            # Check for self-bounces and internal consistency
+            if data and data.orders:
+                temp_orders = [o.order for o in data.orders if o.order]
+                consistency_errors = check_internal_consistency(temp_orders)
+                if consistency_errors:
+                    err_str = " ".join(consistency_errors)
+                    print(f"[{bot_name}] Consistency Check Failed: {err_str}")
+                    history.append(AIMessage(content=json.dumps(data.model_dump())))
+                    history.append(HumanMessage(content=f"Your proposed orders have severe coordination errors. Fix these before submitting:\n{err_str}"))
+                    data = None
+                    continue
 
-            # Try to extract JSON if it was wrapped in markdown
-            match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-            if match:
-                raw_text_to_parse = match.group(0)
-            else:
-                raw_text_to_parse = raw_text
+            break # Successfully validated!
 
-            try:
-                data_dict = json.loads(raw_text_to_parse)
-                data = BotTurnResponse(**data_dict)
-                
-                # Check for self-bounces and internal consistency
-                if data.orders:
-                    temp_orders = [o.order for o in data.orders if o.order]
-                    consistency_errors = check_internal_consistency(temp_orders)
-                    if consistency_errors:
-                        err_str = " ".join(consistency_errors)
-                        print(f"[{bot_name}] Consistency Check Failed: {err_str}")
-                        history.append(AIMessage(content=raw_text))
-                        history.append(HumanMessage(content=f"Your proposed orders have severe coordination errors. Fix these before submitting:\n{err_str}"))
-                        data = None
-                        continue
-
-                break # Successfully parsed and validated!
-            except Exception as e:
-                print(f"[{bot_name}] JSON parse failed: {e}")
-                history.append(AIMessage(content=raw_text))
-                history.append(HumanMessage(content=f"""Your response failed to parse as JSON. Error: {e}. 
-You MUST provide a valid JSON object matching this schema exactly:
-{{
-  "reasoning": "string",
-  "orders": [ {{"location": "string", "order": "string"}} ],
-  "messages": [ {{"recipient": "string", "message": "string"}} ]
-}}"""))
-        
         if not data:
             raise ValueError("Failed to get valid JSON from model after multiple attempts.")
         

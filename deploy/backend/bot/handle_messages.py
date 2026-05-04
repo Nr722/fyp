@@ -2,9 +2,9 @@ import json
 import re
 from langchain_core.messages import HumanMessage, AIMessage
 from bot.models import BotReactionResponse
-from bot.bot import chat_histories, get_model, invoke_agent_loop
+from bot.bot import chat_histories, get_model, invoke_with_retry
 from bot.db import add_agreement
-from function_tools.move_validator import get_move_validator_tool, check_internal_consistency
+from function_tools.move_validator import check_internal_consistency
 
 def handle_incoming_message(game, bot_name: str, sender: str, message: str, game_id: str, recipient: str = None):
     """
@@ -102,10 +102,16 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     4. You can also send messages to OTHER players based on this new information.
     5. BE EXTREMELY SPECIFIC IN MESSAGES: Do not send generic replies. Specify exact territories, units, and moves you are going to take or want the other player to take.
     6. BOARD STATE AWARENESS: Always look at the CURRENT BOARD STATE to see who owns what. Do not threaten or ask to "take over" a center from someone who does not own it.
-    7. AVOID VIA CONVOYS: DO NOT use VIA paths in your orders unless you have explicit fleet coordination in place.
-    
+    7. CONVOYS REQUIRE TWO ORDERS: If you issue a 'VIA' order for an Army (e.g., A DEN - NWY VIA), you MUST simultaneously issue a corresponding Convoy ('C') order for your Fleet (e.g., F SKA C A DEN - NWY) in that exact same set of orders, OR you must have a confirmed agreement from an ally to provide the fleet convoy this turn.
+    8. SUPPORT REQUIRES ALIGNMENT: If you output an order to Support another unit's move, the supported unit MUST actually be ordered to make that exact move.
+    9. SYNTAX STRICTNESS: The exact spelling and format of any orders you output must match the 'Valid Options' list exactly. Do not truncate or modify the order strings.
+    10. SIMULTANEOUS SECRET ORDERS: Orders are submitted secretly and resolved simultaneously at the end of the phase. Other players CANNOT see the orders you are submitting now, and you cannot see theirs. If you mention your current moves in a message, you are voluntarily revealing your secret plans. Do not speak as if your current-turn moves are already visible on the board.
+    11. CONVERSATIONAL STYLE: Be natural and varied. Do not repeatedly use the same greetings (like "My friend") or the same excuses (like "stabilizing the region"). Speak like a human player—short, direct, and varied. Do not over-explain routine moves. If you are attacking someone, do not feign innocence by saying you are "acting defensively"; either lie before it happens, or acknowledge the hostility. Avoid PR-bot speak.
+
     IMPORTANT ABOUT AGREEMENTS:
     Only include something in 'agreements' if the message from {sender} explicitly proposed an agreement AND you are now explicitly ACCEPTING it in your reply. Do NOT hallucinate past agreements or log proposals you are just making. Only log mutual pacts that are being confirmed RIGHT NOW.
+    Example of an agreement to log: "We agree to DMZ the English Channel."
+    Example of a proposal (DO NOT LOG): "I will support you if you move to Munich."
     
     Do you want to change your orders based on this new information?
     If you want to change your orders, provide the FULL list of updated orders.
@@ -115,12 +121,11 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     {json.dumps(valid_orders, indent=2)}
     
     IMPORTANT: You MUST respond with a JSON object exactly matching this schema:
-    {BotReactionResponse.model_json_schema()}
+    {json.dumps(BotReactionResponse.model_json_schema(), indent=2)}
     """
     
-    move_validator_tool = get_move_validator_tool(game)
-    tools = [move_validator_tool]
     model = get_model()
+    structured_model = model.with_structured_output(BotReactionResponse)
     
     try:
         # Add the human message to history
@@ -129,43 +134,24 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
         # Add retry loop for reactions
         data = None
         for parse_attempt in range(3):
-            # Use our new agent loop
-            response = invoke_agent_loop(model, tools, history, bot_name=bot_name)
+            # Use our retry loop with the structured model
+            response = invoke_with_retry(structured_model, history, bot_name=bot_name)
             
-            # Parse text
-            raw_text = response.content
-            if isinstance(raw_text, list):
-                raw_text = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in raw_text)
-            else:
-                raw_text = str(raw_text)
-                
-            match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-            if match:
-                raw_text_to_parse = match.group(0)
-            else:
-                raw_text_to_parse = raw_text
-                
-            try:
-                data_dict = json.loads(raw_text_to_parse)
-                data = BotReactionResponse(**data_dict)
-                
-                # Check for internal consistency in updated orders
-                if data.orders:
-                    temp_orders = [o.order for o in data.orders if o.order]
-                    consistency_errors = check_internal_consistency(temp_orders)
-                    if consistency_errors:
-                        err_str = " ".join(consistency_errors)
-                        print(f"[{bot_name} Reaction] Consistency failure: {err_str}")
-                        history.append(AIMessage(content=raw_text))
-                        history.append(HumanMessage(content=f"Your proposed new orders failed validation: {err_str} Fix these errors and try again."))
-                        data = None
-                        continue
+            data = response
+            
+            # Check for internal consistency in updated orders
+            if data and data.orders:
+                temp_orders = [o.order for o in data.orders if o.order]
+                consistency_errors = check_internal_consistency(temp_orders)
+                if consistency_errors:
+                    err_str = " ".join(consistency_errors)
+                    print(f"[{bot_name} Reaction] Consistency failure: {err_str}")
+                    history.append(AIMessage(content=json.dumps(data.model_dump())))
+                    history.append(HumanMessage(content=f"Your proposed new orders failed validation: {err_str} Fix these errors and try again."))
+                    data = None
+                    continue
 
-                break # Parsed and validated successfully!
-            except Exception as parse_e:
-                print(f"[{bot_name}] JSON parse/validation failed on attempt {parse_attempt}: {parse_e}")
-                history.append(AIMessage(content=raw_text))
-                history.append(HumanMessage(content=f"Failed to parse your response as valid JSON matching the schema. Error: {parse_e}"))
+            break # Parsed and validated successfully!
 
         if not data:
             raise ValueError("Failed to get valid output from reaction after 3 attempts.")
