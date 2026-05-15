@@ -9,6 +9,8 @@ def score_individual_orders(game, power):
     orderable_locs = game.get_orderable_locations(power)
     
     # Build fast lookups
+    my_units_raw = game.get_units(power)
+    my_units = [u.split()[1][:3] for u in my_units_raw]
     my_centers = game.get_centers(power)
     all_centers = game.map.scs
     
@@ -34,13 +36,33 @@ def score_individual_orders(game, power):
                 
                 # Bonus for attacking/taking a Supply Center
                 if target in all_centers and target not in my_centers:
-                    score += 150 # HEAVILY weight moving to unowned supply centers
+                    score += 100 # Moderated down from 120 to allow positional setups to compete
                     if target in enemy_units:
                         score += 50 # Attacking an ENEMY center is huge
                         
                 # Bonus for attacking an enemy unit (non-center)
                 elif target in enemy_units:
                     score += 50 
+                    
+                # ---------------- NEW LOGIC ----------------
+                # 1. Friendly Fire / Self-Bounce Penalty
+                if target in my_units:
+                    # severely penalize moving into a space we already occupy
+                    score -= 80 
+                    
+                # 2. Unsupported vs Supported Attacks
+                if target in enemy_units:
+                    adj_to_target = game.map.abut_list(target)
+                    friendly_potential_supports = len([u for u in my_units if u in adj_to_target and u != loc])
+                    
+                    if friendly_potential_supports == 0:
+                        # Suicide attack against an occupied space with 0 support (1v1)
+                        # Will likely bounce unless enemy vacates. Reduce the high enthusiasm.
+                        score -= 60 
+                    else:
+                        # We have friends nearby! Good coordinated attack structure.
+                        score += (friendly_potential_supports * 30)
+                # -------------------------------------------
                 
                 # Bonus for moving closer to enemy units/action (Aggressive positioning)
                 adj = game.map.abut_list(target)
@@ -60,22 +82,22 @@ def score_individual_orders(game, power):
                 target = parts[-1][:3] # Default to the final destination
                 
                 if target in all_centers and target not in my_centers:
-                    score += 140 # Supporting an attack on an unowned/enemy center
+                    score += 100 # Supporting an attack on an unowned/enemy center
                 elif target in enemy_units:
-                    score += 100 # Supporting an attack on an enemy unit
+                    score += 90 # Supporting an attack on an enemy unit
                 else:
                     # Supporting own unit defensively or just holding ground
-                    score += 20 
+                    score += 30 
                     
             # 3. Evaluate HOLD orders (e.g., "A PAR H")
             elif " H" in order:
                 # Holding a supply center is okay defensively
                 if loc in my_centers:
-                    score += 15
+                    score += 40
                 # Holding a front line (adjacent to enemies) is good
                 adj = game.map.abut_list(loc)
                 if any(a in enemy_units for a in adj):
-                    score += 30
+                    score += 50
             # 4. Evaluate CONVOY orders (e.g., "F ENG C A LON - BEL")
             elif " C " in order:
                 # 'parts' looks like: ['F', 'ENG', 'C', 'A', 'LON', '-', 'BEL']
@@ -83,21 +105,22 @@ def score_individual_orders(game, power):
                 
                 # Bonus for convoying an army to take a Supply Center
                 if target in all_centers and target not in my_centers:
-                    score += 140 # Matches aggressive support value
+                    score += 150 # Slightly increased to encourage convoy maneuvers
                     if target in enemy_units:
                         score += 50 # Bonus if the center is occupied            
                 # Bonus for convoying an attack on a regular enemy unit
                 elif target in enemy_units:
-                    score += 90 
+                    score += 100 
                 # General repositioning via water
                 else:
-                    score += 30
+                    score += 50
+                    
             scored_orders.append({"order": order, "score": score})
             
         # Sort the orders for this unit by score
         scored_orders.sort(key=lambda x: x["score"], reverse=True)
-        # Only keep the top 4 most logical moves per unit
-        scored_options[loc] = scored_orders[:4]
+        # Only keep the top 5 most logical moves per unit
+        scored_options[loc] = scored_orders[:5]
         
     print(f"\\n[Tactical Scorer] Evaluated individual orders for {power}:")
     for loc, options in scored_options.items():

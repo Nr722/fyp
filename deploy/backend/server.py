@@ -18,7 +18,7 @@ from bot.db import init_db, save_message, get_game_messages
 from bot.bot import get_bot_orders
 from bot.handle_messages import handle_incoming_message
 from bot.random_bot import get_random_bot_orders
-from viz import generate_history_svg
+from viz import generate_history_svg, generate_current_svg
 
 app = FastAPI()
 
@@ -81,7 +81,7 @@ def get_game_state(game_id: str):
     current_phase = game.get_current_phase()
     map_path = f"maps/board_{game_id}_{current_phase}.svg"
     os.makedirs('maps', exist_ok=True)
-    game.render(incl_orders=False, incl_abbrev=True, output_path=map_path)
+    generate_current_svg(game, map_path)
     with open(map_path, "r") as f:
         svg_content = f.read()
         
@@ -96,6 +96,7 @@ def get_game_state(game_id: str):
             hist_svg_content = f.read()
 
     active_powers = [p for p, data in game.powers.items() if not data.is_eliminated()]
+    past_phases = [p.name for p in game.get_phase_history()]
     
     return {
         "phase": current_phase,
@@ -107,8 +108,31 @@ def get_game_state(game_id: str):
         "winner": game.outcome,
         "map_svg": svg_content,
         "history_svg": hist_svg_content,
-        "last_phase_name": last_phase_name
+        "last_phase_name": last_phase_name,
+        "past_phases": past_phases
     }
+
+@app.get("/game/{game_id}/history/{phase_name}")
+def get_historical_map(game_id: str, phase_name: str):
+    if game_id not in games:
+        raise HTTPException(status_code=404, detail="Game not found")
+    game = games[game_id]
+    
+    # generate a map for an older phase
+    # if it's the current phase, history generator might fail or behave weirdly, 
+    # but the frontend will know to use /state for the current phase.
+    hist_path = f"maps/history_specific_{game_id}_{phase_name}.svg"
+    os.makedirs('maps', exist_ok=True)
+    try:
+        from viz import generate_history_svg_for_phase
+        generate_history_svg_for_phase(game, phase_name, hist_path)
+        with open(hist_path, "r") as f:
+            svg_content = f.read()
+        return {"map_svg": svg_content}
+    except Exception as e:
+        # Fallback if specific generation isn't available
+        # we can just use the internal generator if standard generate_history_svg_for_phase isn't built
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/game/{game_id}/orders/possible/{power}")
 def get_possible_orders(game_id: str, power: str):

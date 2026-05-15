@@ -7,13 +7,6 @@ class RichRenderer(Renderer):
         super().__init__(game, **kwargs)
         self.adjudication_data = adjudication_data or {}
 
-    def _set_influence(self, xml_map, loc, power_name, has_supply_center=False):
-        # Override influence to only color based on game JSON "centers"
-        # If it's pure influence (has_supply_center=False), we ignore it so it doesn't prematurely color map
-        if not has_supply_center:
-            return xml_map
-        return super()._set_influence(xml_map, loc, power_name, has_supply_center)
-
     def _get_order_status(self, src_loc, power_name):
         if not self.adjudication_data:
             return []
@@ -127,6 +120,42 @@ class RichRenderer(Renderer):
                         layer_node.appendChild(node)
                         return
 
+def apply_webdip_default_borders(game):
+    """
+    Applies WebDiplomacy-style historical borders to empty, non-supply centers.
+    """
+    DEFAULT_BORDERS = {
+        'SYR': 'TURKEY', 'ARM': 'TURKEY',
+        'RUH': 'GERMANY', 'PRU': 'GERMANY', 'SIL': 'GERMANY',
+        'TYR': 'AUSTRIA', 'BOH': 'AUSTRIA', 'GAL': 'AUSTRIA',
+        'FIN': 'RUSSIA', 'UKR': 'RUSSIA', 'LVN': 'RUSSIA',
+        'BUR': 'FRANCE', 'PIC': 'FRANCE', 'GAS': 'FRANCE',
+        'CLY': 'ENGLAND', 'WAL': 'ENGLAND', 'YOR': 'ENGLAND',
+        'PUG': 'ITALY', 'TUS': 'ITALY', 'PIE': 'ITALY',
+    }
+    
+    # Get all provinces currently influenced by anyone (occupied or owned)
+    influenced_locs = set()
+    for power in game.powers.values():
+        influenced_locs.update(power.influence)
+        influenced_locs.update(power.centers)
+        
+    for loc, power_name in DEFAULT_BORDERS.items():
+        if loc not in influenced_locs:
+            game.get_power(power_name).influence.append(loc)
+
+def generate_current_svg(game, output_path):
+    """
+    Generates an SVG for the CURRENT phase.
+    """
+    temp_game = Game(map_name=game.map_name)
+    temp_game.set_state(game.get_state())
+    apply_webdip_default_borders(temp_game)
+    
+    renderer = RichRenderer(temp_game)
+    renderer.render(incl_orders=False, incl_abbrev=True, output_path=output_path)
+    return output_path
+
 def generate_history_svg(game, output_path):
     """
     Generates an SVG for the PREVIOUS phase, including results of orders.
@@ -140,11 +169,44 @@ def generate_history_svg(game, output_path):
     # Create a dummy game to render
     temp_game = Game(map_name=game.map_name)
     temp_game.set_phase_data(last_phase_data)
+    apply_webdip_default_borders(temp_game)
     
     # Get status from the passed game (which has processed the turn)
     status = game.get_order_status()
     
     renderer = RichRenderer(temp_game, adjudication_data=status)
+    renderer.render(incl_orders=True, incl_abbrev=True, output_path=output_path)
+    
+    return output_path
+
+def generate_history_svg_for_phase(game, phase_name, output_path):
+    """
+    Generates an SVG for a specific historical phase by name.
+    """
+    history = list(game.get_phase_history())
+    target_phase_data = None
+    next_phase_data = None
+    
+    for i, p in enumerate(history):
+        if p.name == phase_name:
+            target_phase_data = p
+            # The results of this phase are technically known when the NEXT phase begins
+            if i + 1 < len(history):
+                next_phase_data = history[i+1]
+            break
+            
+    if not target_phase_data:
+        raise ValueError(f"Phase {phase_name} not found")
+
+    temp_game = Game(map_name=game.map_name)
+    temp_game.set_phase_data(target_phase_data)
+    apply_webdip_default_borders(temp_game)
+    
+    # We would need the status dictionary for that specific phase
+    # The diplomacy package stores it in the Game object, but recreating exactly the old status is tricky
+    # For now, we will render it without order pass/fail colors if we can't extract the old status, 
+    # but the orders arrow will still render!
+    renderer = RichRenderer(temp_game, adjudication_data={})
     renderer.render(incl_orders=True, incl_abbrev=True, output_path=output_path)
     
     return output_path

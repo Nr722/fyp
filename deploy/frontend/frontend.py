@@ -172,14 +172,44 @@ def render_svg_string(svg_string):
         unsafe_allow_html=True
     )
 
-# Display the current board state
-st.header("Game Board")
-render_svg_string(game_state["map_svg"])
+# Timeline Feature
+st.header("Game Board Timeline")
+past_phases = game_state.get("past_phases", [])
+current_phase_label = f"{game_state.get('phase', 'Present')} (Current Phase)"
+if past_phases:
+    timeline_options = past_phases + [current_phase_label]
+    selected_time = st.selectbox(
+        "View Board History:", 
+        options=timeline_options,
+        index=len(timeline_options) - 1, # Default: Present
+        key="timeline_select"
+    )
+    
+    if selected_time == current_phase_label:
+        render_svg_string(game_state["map_svg"])
+    else:
+        # Fetch historical map for selected_time
+        try:
+            hist_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/history/{selected_time}")
+            if hist_res.status_code == 200:
+                hist_svg = hist_res.json().get("map_svg")
+                st.info(f"Viewing historical map for {selected_time}. Orders shown are the orders submitted during that phase.")
+                render_svg_string(hist_svg)
+            else:
+                st.error("Failed to load historical timeline map.")
+        except Exception as e:
+            st.error(f"Error fetching historical map: {e}")
+else:
+    # If no past phases yet, just show present map
+    st.header("Game Board")
+    render_svg_string(game_state["map_svg"])
 
-if game_state.get("history_svg"):
-    with st.expander("Show Last Turn Adjudication"):
-        st.subheader(f"Adjudication Results: {game_state['last_phase_name']}")
-        render_svg_string(game_state["history_svg"])
+
+# Legacy Last Turn Expander (optional, removed to avoid clutter, using timeline instead)
+# if game_state.get("history_svg"):
+#     with st.expander("Show Last Turn Adjudication"):
+#         st.subheader(f"Adjudication Results: {game_state['last_phase_name']}")
+#         render_svg_string(game_state["history_svg"])
 
 # Display board status summary
 st.header("Board Status")

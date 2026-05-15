@@ -65,7 +65,17 @@ def check_internal_consistency(orders: list[str]) -> list[str]:
                 target_loc = target_parts[1].split('/')[0]
                 if target_loc in ordered_actions: # The convoyed unit is ours
                     target_action = ordered_actions[target_loc]
-                    if target_action[0] != "MOVE" or target_action[1].strip() != target_info:
+                    # Check if the target is a MOVE and match ignoring " VIA" suffix
+                    is_valid_move = target_action[0] == "MOVE"
+                    actual_target_order = target_action[1].strip()
+                    if is_valid_move:
+                        # Normalize both for comparison
+                        norm_target_info = target_info.replace(" VIA", "")
+                        norm_actual_order = actual_target_order.replace(" VIA", "")
+                        if norm_target_info != norm_actual_order:
+                            is_valid_move = False
+                    
+                    if not is_valid_move:
                          errors.append(f"Coordination mismatch: '{full_order}' attempts to convoy, but the target army is doing: '{target_action[-1]}'.")
                          
     return errors
