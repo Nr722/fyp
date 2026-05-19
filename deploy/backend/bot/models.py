@@ -18,15 +18,17 @@ class AgreementItem(BaseModel):
 
 class BotTurnResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    reasoning: str = Field(description="Strategic justification.")
-    # We change from Dict to List to avoid the 'additionalProperties' error
-    orders: List[OrderItem] = Field(description="List of orders for each location.")
-    messages: Optional[List[MessageItem]] = Field(default=None, description="Optional list of messages to send to other powers.")
+    reasoning: str = Field(description="Strategic justification. Explain your plan to reach 18 centers.")
+    messages: Optional[List[MessageItem]] = Field(default=None, description="Optional list of messages to send to other powers. Try to rely LESS on messages. Stay mysterious.")
 
 class BotReactionResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
     reasoning: str = Field(description="Strategic justification for the reaction.")
-    messages: Optional[List[MessageItem]] = Field(default=None, description="Optional list of messages to send in reply.")
-    orders: Optional[List[OrderItem]] = Field(default=None, description="Optional list of updated orders. Only include if you want to change your current orders.")
-    agreements: Optional[List[AgreementItem]] = Field(default=None, description="Only include if you are ACCEPTING a proposed agreement in this exact message round. Do not include if you are just proposing one.")
+    messages: Optional[List[MessageItem]] = Field(default=None, description="Optional list of messages to send in reply. Leave an empty array if a reply is not strictly necessary.")
+    agreements: Optional[List[AgreementItem]] = Field(default=None, description="Only include if you are ACCEPTING a proposed agreement in this exact message round.")
+
+class BotOrderResponse(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    reasoning: str = Field(description="Strategic justification for your final orders. Detail how you will betray or uphold your agreements.")
+    orders: List[OrderItem] = Field(description="List of final orders for each location.")
 

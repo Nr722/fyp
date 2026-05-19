@@ -16,3 +16,4 @@ langchain-core
 langchain-google-genai
 uvicorn
 psycopg2-binary
+pytest

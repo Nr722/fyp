@@ -3,7 +3,7 @@ import re
 from langchain_core.messages import HumanMessage, AIMessage
 from bot.models import BotReactionResponse
 from bot.bot import chat_histories, get_model, invoke_with_retry
-from bot.db import add_agreement
+from deploy.backend.function_tools.db import add_agreement
 from function_tools.move_validator import check_internal_consistency
 
 def handle_incoming_message(game, bot_name: str, sender: str, message: str, game_id: str, recipient: str = None):
@@ -63,7 +63,7 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     trust_history_text = ""
 
     if game_id:
-        from bot.db import get_connection
+        from deploy.backend.function_tools.db import get_connection
         try:
             conn = get_connection()
             with conn.cursor() as cur:
@@ -98,7 +98,7 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     1. STRATEGIC COMMUNICATION: Reply only when it advances your position. Use brief, competitive responses. Reply to 'GLOBAL' for global messages or '{sender}' for private ones.
     2. SECRECY & MISDIRECTION: Unilaterally declaring your own strict intentions ruins your advantage. Ask questions, float conditions, or lie. NEVER just announce "I am taking X."
     3. BOARD AWARENESS: Ground all statements and proposals strictly in the reality of the CURRENT BOARD STATE.
-    4. SYNTAX & VALIDITY: If you update orders, match the 'Valid Options' exactly. Ensure convoys have matching fleet orders, and supported units are executing the exact supported move.
+    4. SYNTAX: Maintain valid communication format.
     5. COMMUNICATION STYLE:
     - Brevity: Use short fragments and lowercase text.
     - Inquiry: Ask them about their plans instead of dictating your own ("whats the play?", "u taking serbia?").
@@ -107,14 +107,9 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     IMPORTANT ABOUT AGREEMENTS:
     Log an agreement ONLY if the message from {sender} explicitly proposed it AND you are explicitly ACCEPTING it now. Log defined mutual pacts (e.g., "We agree to DMZ the English Channel"). Do ignore unilateral proposals you are merely suggesting.
     
-    Do you want to change your orders based on this new information?
-    If you want to change your orders, provide the FULL list of updated orders.
-    If you do not want to change your orders, omit the 'orders' field.
     
-    Available Locations and Valid Options (if you choose to update orders):
-    {json.dumps(valid_orders, indent=2)}
     
-    REMINDER: When generating your reply 'messages', DO NOT simply announce your updated orders to the sender. Ask questions, deflect, lie, or propose conditions instead.
+    REMINDER: When generating your reply 'messages', DO NOT simply announce your tactical plans to the sender. Ask questions, deflect, lie, or propose conditions instead.
     """
     
     model = get_model()
@@ -132,17 +127,7 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
             
             data = response
             
-            # Check for internal consistency in updated orders
-            if data and data.orders:
-                temp_orders = [o.order for o in data.orders if o.order]
-                consistency_errors = check_internal_consistency(temp_orders)
-                if consistency_errors:
-                    err_str = " ".join(consistency_errors)
-                    print(f"[{bot_name} Reaction] Consistency failure: {err_str}")
-                    history.append(AIMessage(content=json.dumps(data.model_dump())))
-                    history.append(HumanMessage(content=f"Your proposed new orders failed validation: {err_str} Fix these errors and try again."))
-                    data = None
-                    continue
+            
 
             break # Parsed and validated successfully!
 
@@ -164,19 +149,7 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
             if recipient and msg_text:
                 messages.append({"recipient": recipient, "message": msg_text})
                 
-        # Extract updated orders if any
         updated_orders = None
-        orders_data = data.orders
-        if orders_data is not None:
-            updated_orders = []
-            for item in orders_data:
-                loc = item.location
-                order_str = item.order
-                
-                if loc and order_str and order_str in valid_orders.get(loc, []):
-                    updated_orders.append(order_str)
-                elif loc and valid_orders.get(loc):
-                    updated_orders.append(valid_orders[loc][0])
                     
         # Extract agreements
         agreements_data = data.agreements

@@ -44,6 +44,15 @@ questions like:
 
 14. What was the most surprising or frustrating thing the bot did during your game?
 
+
+
+## requirements capture? what is that
+
+## how technical the implementation spec needs be. 
+example:
+Because the architecture must support multiple concurrent game sessions, the backend utilizes an in-memory storage dictionary, mapping uniquely generated UUIDs to distinct instances of the \texttt{diplomacy.engine.Game} object.
+
+
 ## issues
 1. issue
 
@@ -53,3 +62,7 @@ didnt occupy beligum, said itll let france have it but then blocked it
 
 
 2. A DEN - NWY VIA, idk what this is
+
+
+
+followed in neondb should be spectrum

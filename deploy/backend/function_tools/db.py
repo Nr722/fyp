@@ -23,7 +23,7 @@ def init_db():
                     agreed_with VARCHAR(50) NOT NULL,
                     agreement TEXT NOT NULL,
                     phase_made VARCHAR(50) NOT NULL,
-                    followed BOOLEAN
+                    followed INTEGER
                 )
             """)
             cur.execute("""
@@ -92,7 +92,7 @@ def get_pending_agreements(game_id: str):
     finally:
         conn.close()
 
-def update_agreement_status(agreement_id: int, followed: bool):
+def update_agreement_status(agreement_id: int, followed: int):
     conn = get_connection()
     try:
         with conn.cursor() as cur:

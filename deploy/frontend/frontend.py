@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# API_URL = os.getenv("API_URL", "http://localhost:8000")
-API_URL = "https://sunny-sparkle-backend.up.railway.app/"
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+# API_URL = "https://sunny-sparkle-backend.up.railway.app/"
 def check_rate_limits():
     """Checks for rate limit events from the backend and displays them as warnings."""
     if 'last_rate_limit_check' not in st.session_state:
@@ -81,6 +81,7 @@ if 'game_id' not in st.session_state:
     st.session_state.game_id = None
     st.session_state.human_power = HUMAN_POWER_DEFAULT
     st.session_state.human_orders_submitted = False
+    st.session_state.negotiation_phase_ended = False
     st.session_state.last_seen_messages = 0
     st.session_state.read_counts = {}
 
@@ -91,6 +92,7 @@ def start_new_game(power, num_ai_bots=6):
         st.session_state.game_id = data["game_id"]
         st.session_state.human_power = data["human_power"]
         st.session_state.human_orders_submitted = False
+        st.session_state.negotiation_phase_ended = False
         st.session_state.last_seen_messages = 0
         st.session_state.read_counts = {}
         st.session_state.ai_powers = data.get("ai_powers", [])
@@ -255,89 +257,97 @@ if not game_state["is_game_done"]:
         else:
             phase_type = current_phase[-1] if current_phase else 'M'
 
-            # Dynamically generate input fields for all units or adjustments in orderable_locs
-            current_orders = []
-            for loc in orderable_locs:
-                possible_orders_for_loc = all_possible_orders.get(loc, [])
+            if not st.session_state.negotiation_phase_ended:
+                st.write("### Diplomacy Phase")
+                st.info("Negotiate with other players. When you are ready, end the negotiation phase to draft your orders.")
+                if st.button("End Negotiation Phase", use_container_width=True, type="primary"):
+                    st.session_state.negotiation_phase_ended = True
+                    st.rerun()
 
-                # Adjustment phase (builds/removes)
-                if phase_type == 'A':
-                    if not possible_orders_for_loc:
-                        st.warning(f"No adjustment options available for {loc}. Skipping.")
+            if st.session_state.negotiation_phase_ended:
+                st.write("### Order Phase")
+                # Dynamically generate input fields for all units or adjustments in orderable_locs
+                current_orders = []
+                for loc in orderable_locs:
+                    possible_orders_for_loc = all_possible_orders.get(loc, [])
+
+                    # Adjustment phase (builds/removes)
+                    if phase_type == 'A':
+                        if not possible_orders_for_loc:
+                            st.warning(f"No adjustment options available for {loc}. Skipping.")
+                            continue
+                        label = f"Adjustment for {loc}:"
+                        order = st.selectbox(
+                            label,
+                            options=possible_orders_for_loc,
+                            key=f"order_{HUMAN_POWER}_{loc}_{phase_type}"
+                        )
+                        current_orders.append(order)
                         continue
-                    label = f"Adjustment for {loc}:"
+
+                    # Movement / Retreat phases
+                    unit_string = None
+                    unit_loc_token = None
+                    for u in power_units:
+                        parts = u.split()
+                        if len(parts) < 2:
+                            continue
+                        token = parts[-1]
+                        if token == loc:
+                            unit_string = u
+                            unit_loc_token = token
+                            break
+                        if token.split('/')[0] == loc:
+                            unit_string = u
+                            unit_loc_token = token
+                            break
+
+                    if not unit_string:
+                        st.warning(f"Could not determine unit type for {loc}. Skipping.")
+                        continue
+
+                    unit_type = unit_string.split()[0].replace('*', '')
+                    loc_for_order = unit_loc_token or loc
+
+                    merged_possible = list(dict.fromkeys(
+                        (all_possible_orders.get(loc, []) or []) + (all_possible_orders.get(loc_for_order, []) or [])
+                    ))
+
+                    default_order = f"{unit_type} {loc_for_order} H"
+                    if default_order not in merged_possible:
+                        merged_possible.insert(0, default_order)
+
+                    label = f"Order for {unit_type} {loc_for_order}:"
                     order = st.selectbox(
                         label,
-                        options=possible_orders_for_loc,
+                        options=merged_possible,
                         key=f"order_{HUMAN_POWER}_{loc}_{phase_type}"
                     )
                     current_orders.append(order)
-                    continue
+                # Submit all orders together
+                if st.button(f"Submit Orders / Lock In", use_container_width=True, type="primary"):
+                    valid_submission = True
+                    if phase_type == 'A':
+                        n_centers = len(game_state["centers"].get(HUMAN_POWER, []))
+                        n_units = len(game_state["units"].get(HUMAN_POWER, []))
+                        n_builds = n_centers - n_units
+                        if n_builds > 0:
+                            n_selected_builds = len([o for o in current_orders if o.endswith(' B')])
+                            if n_selected_builds > n_builds:
+                                st.error(f"Invalid orders: You have {n_builds} builds available but selected {n_selected_builds}. Please WAIVE the excess builds.")
+                                valid_submission = False
 
-                # Movement / Retreat phases
-                unit_string = None
-                unit_loc_token = None
-                for u in power_units:
-                    parts = u.split()
-                    if len(parts) < 2:
-                        continue
-                    token = parts[-1]
-                    if token == loc:
-                        unit_string = u
-                        unit_loc_token = token
-                        break
-                    if token.split('/')[0] == loc:
-                        unit_string = u
-                        unit_loc_token = token
-                        break
-
-                if not unit_string:
-                    st.warning(f"Could not determine unit type for {loc}. Skipping.")
-                    continue
-
-                unit_type = unit_string.split()[0].replace('*', '')
-                loc_for_order = unit_loc_token or loc
-
-                merged_possible = list(dict.fromkeys(
-                    (all_possible_orders.get(loc, []) or []) + (all_possible_orders.get(loc_for_order, []) or [])
-                ))
-
-                default_order = f"{unit_type} {loc_for_order} H"
-                if default_order not in merged_possible:
-                    merged_possible.insert(0, default_order)
-
-                label = f"Order for {unit_type} {loc_for_order}:"
-                order = st.selectbox(
-                    label,
-                    options=merged_possible,
-                    key=f"order_{HUMAN_POWER}_{loc}_{phase_type}"
-                )
-                current_orders.append(order)
-
-            # Submit all orders together
-            if st.button(f"Submit Orders for {HUMAN_POWER}", use_container_width=True, type="primary"):
-                valid_submission = True
-                if phase_type == 'A':
-                    n_centers = len(game_state["centers"].get(HUMAN_POWER, []))
-                    n_units = len(game_state["units"].get(HUMAN_POWER, []))
-                    n_builds = n_centers - n_units
-                    if n_builds > 0:
-                        n_selected_builds = len([o for o in current_orders if o.endswith(' B')])
-                        if n_selected_builds > n_builds:
-                            st.error(f"Invalid orders: You have {n_builds} builds available but selected {n_selected_builds}. Please WAIVE the excess builds.")
-                            valid_submission = False
-
-                if valid_submission:
-                    submit_res = requests.post(
-                        f"{API_URL}/game/{st.session_state.game_id}/orders",
-                        json={"power": HUMAN_POWER, "orders": current_orders}
-                    )
-                    if submit_res.status_code == 200:
-                        st.session_state.human_orders_submitted = True
-                        st.success(f"Orders submitted for {HUMAN_POWER}")
-                        st.rerun()
-                    else:
-                        st.error(f"Invalid order submitted: {submit_res.text}")
+                    if valid_submission:
+                        submit_res = requests.post(
+                            f"{API_URL}/game/{st.session_state.game_id}/orders",
+                            json={"power": HUMAN_POWER, "orders": current_orders}
+                        )
+                        if submit_res.status_code == 200:
+                            st.session_state.human_orders_submitted = True
+                            st.success(f"Orders submitted for {HUMAN_POWER}")
+                            st.rerun()
+                        else:
+                            st.error(f"Invalid order submitted: {submit_res.text}")
     else:
         # Human orders in, generate bot orders and process
         with st.status("Processing Turn...", expanded=True) as status:
@@ -358,6 +368,7 @@ if not game_state["is_game_done"]:
                 
                 # Reset for next turn
                 st.session_state.human_orders_submitted = False
+                st.session_state.negotiation_phase_ended = False
                 if st.button("Start Next Turn", use_container_width=True):
                     st.rerun()
             else:

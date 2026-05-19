@@ -14,17 +14,20 @@ from diplomacy.engine.game import Game
 from diplomacy.engine.message import Message
 
 # Import from backend module
-from bot.db import init_db, save_message, get_game_messages
-from bot.bot import get_bot_orders
+from function_tools.db import init_db, save_message, get_game_messages
+from bot.bot import get_bot_orders, get_bot_messages
 from bot.handle_messages import handle_incoming_message
 from bot.random_bot import get_random_bot_orders
 from viz import generate_history_svg, generate_current_svg
 
-app = FastAPI()
+from contextlib import asynccontextmanager
 
-@app.on_event("startup")
-def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     init_db()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 # In-memory store for games
 games: Dict[str, Game] = {}
@@ -204,8 +207,20 @@ def process_turn(game_id: str, req: ProcessTurnRequest):
         bot_orders_dict = {}
         active_powers = [p for p, data in game.powers.items() if not data.is_eliminated()]
         bot_powers = [p for p in active_powers if p != req.human_power]
-        for p in bot_powers:
-            bot_orders_dict[p] = list(game.get_orders().get(p, []))
+        
+        # Generate final bot orders before processing
+        config = game_configs.get(game_id, {"ai_powers": []})
+        ai_powers = config.get("ai_powers", [])
+        for bp in bot_powers:
+            bot_type = "ai" if bp in ai_powers else "random"
+            try:
+                bot_orders = get_bot_orders(game, bp, bot_type=bot_type, game_id=game_id)
+                game.set_orders(bp, bot_orders)
+            except Exception as e:
+                print(f"Error getting final orders for {bp}: {e}")
+                bot_orders = []
+            
+            bot_orders_dict[bp] = list(game.get_orders().get(bp, []))
             
         from bot.evaluator import evaluate_agreements
         evaluate_agreements(game_id, game)
@@ -389,8 +404,7 @@ def run_bots_for_game(game_id: str, human_power: str):
                 for bp in bot_powers:
                     try:
                         bot_type = "ai" if bp in ai_powers else "random"
-                        bot_orders, bot_messages = get_bot_orders(game, bp, bot_type=bot_type, game_id=game_id)
-                        game.set_orders(bp, bot_orders)
+                        bot_messages = get_bot_messages(game, bp, bot_type=bot_type, game_id=game_id)
                         
                         if bot_messages:
                             for msg_data in bot_messages:
