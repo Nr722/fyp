@@ -63,5 +63,6 @@ Thumbs.db
 
 /orders*
 
-deploy/backend/.venv/
-deploy/frontend/.venv/
+backend/.venv/
+frontend/.venv/
+backend/test/cicero_redacted_games

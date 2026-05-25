@@ -1,5 +1,0 @@
-streamlit
-streamlit-autorefresh
-python-dotenv
-requests
-pytest

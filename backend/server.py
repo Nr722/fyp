@@ -24,6 +24,9 @@ from bot.random_bot import get_random_bot_orders
 from viz import generate_history_svg, generate_current_svg
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
+
+load_dotenv()
 
 # JWT Configuration
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")
@@ -57,7 +60,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return username
 
-load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -65,6 +67,15 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # In-memory store for games
 games: Dict[str, Game] = {}

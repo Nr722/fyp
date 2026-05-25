@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# API_URL = os.getenv("API_URL", "http://localhost:8000")
-API_URL = "https://sunny-sparkle-backend.up.railway.app/"
+# Determine API URL: Use environment variable if set, otherwise default to local for development
+API_URL = os.getenv("API_URL", "http://localhost:8000").rstrip("/")
 
 def get_headers():
     if 'token' in st.session_state and st.session_state.token:
