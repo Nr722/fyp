@@ -22,7 +22,7 @@ from bot.bot import get_bot_orders, get_bot_messages
 from bot.handle_messages import handle_incoming_message
 from bot.random_bot import get_random_bot_orders
 from viz import generate_history_svg, generate_current_svg
-
+from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 
 # JWT Configuration
