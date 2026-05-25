@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Determine API URL: Use environment variable if set, otherwise default to local for development
+# Ensure we strip any trailing slashes from the environment variable
 API_URL = os.getenv("API_URL", "http://localhost:8000").rstrip("/")
 
 def get_headers():
