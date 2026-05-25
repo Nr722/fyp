@@ -11,13 +11,19 @@ load_dotenv()
 
 # API_URL = os.getenv("API_URL", "http://localhost:8000")
 API_URL = "https://sunny-sparkle-backend.up.railway.app/"
+
+def get_headers():
+    if 'token' in st.session_state and st.session_state.token:
+        return {"Authorization": f"Bearer {st.session_state.token}"}
+    return {}
+
 def check_rate_limits():
     """Checks for rate limit events from the backend and displays them as warnings."""
     if 'last_rate_limit_check' not in st.session_state:
         st.session_state.last_rate_limit_check = time.time()
         
     try:
-        res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/rate-limits")
+        res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/rate-limits", headers=get_headers())
         if res.status_code == 200:
             events = res.json().get("events", [])
             # Filter for events that happened after our last check
@@ -44,6 +50,9 @@ st.set_page_config(page_title="Diplomacy", layout="wide")
 def login():
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
+    
+    if 'token' not in st.session_state:
+        st.session_state.token = None
 
     if not st.session_state.logged_in:
         st.title("Diplomacy Login")
@@ -65,9 +74,18 @@ def login():
             
             if submit:
                 if username == admin_username and password == admin_password:
-                    st.session_state.logged_in = True
-                    st.success("Logged in successfully!")
-                    st.rerun()
+                    # Fetch JWT Token from backend
+                    try:
+                        token_res = requests.post(f"{API_URL}/token", data={"username": username, "password": password})
+                        if token_res.status_code == 200:
+                            st.session_state.token = token_res.json()["access_token"]
+                            st.session_state.logged_in = True
+                            st.success("Logged in successfully!")
+                            st.rerun()
+                        else:
+                            st.error(f"Backend authentication failed: {token_res.text}")
+                    except Exception as e:
+                        st.error(f"Error connecting to backend: {e}")
                 else:
                     st.error("Invalid username or password")
         st.stop()
@@ -86,7 +104,7 @@ if 'game_id' not in st.session_state:
     st.session_state.read_counts = {}
 
 def start_new_game(power, num_ai_bots=6):
-    res = requests.post(f"{API_URL}/game/new", json={"human_power": power, "num_ai_bots": num_ai_bots})
+    res = requests.post(f"{API_URL}/game/new", json={"human_power": power, "num_ai_bots": num_ai_bots}, headers=get_headers())
     if res.status_code == 200:
         data = res.json()
         st.session_state.game_id = data["game_id"]
@@ -98,7 +116,7 @@ def start_new_game(power, num_ai_bots=6):
         st.session_state.ai_powers = data.get("ai_powers", [])
         st.success(f"Started a new game! Bots: {', '.join(st.session_state.ai_powers) if st.session_state.ai_powers else 'None'}")
     else:
-        st.error("Failed to start a new game.")
+        st.error(f"Failed to start a new game: {res.text}")
 
 if not st.session_state.game_id:
     start_new_game(HUMAN_POWER_DEFAULT, 6)
@@ -111,16 +129,16 @@ check_rate_limits()
 
 # Debug: Fake Rate Limit Button
 # if st.sidebar.button("Debug: Test Rate Limit Popup"):
-#     requests.post(f"{API_URL}/game/{st.session_state.game_id}/test-rate-limit")
+#     requests.post(f"{API_URL}/game/{st.session_state.game_id}/test-rate-limit", headers=get_headers())
 #     st.rerun()
 
 # if st.sidebar.button("Debug: Clear Rate Limit History"):
-#     requests.post(f"{API_URL}/game/{st.session_state.game_id}/clear-rate-limits")
+#     requests.post(f"{API_URL}/game/{st.session_state.game_id}/clear-rate-limits", headers=get_headers())
 #     st.session_state.last_rate_limit_check = time.time()
 #     st.success("Cleared")
 
 # Fetch current game state
-res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/state")
+res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/state", headers=get_headers())
 if res.status_code != 200:
     st.error("Failed to fetch game state. The server might have restarted.")
     if st.button("Start New Game"):
@@ -192,7 +210,7 @@ if past_phases:
     else:
         # Fetch historical map for selected_time
         try:
-            hist_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/history/{selected_time}")
+            hist_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/history/{selected_time}", headers=get_headers())
             if hist_res.status_code == 200:
                 hist_svg = hist_res.json().get("map_svg")
                 st.info(f"Viewing historical map for {selected_time}. Orders shown are the orders submitted during that phase.")
@@ -238,7 +256,7 @@ if not game_state["is_game_done"]:
         st.header(f"Enter Orders for {HUMAN_POWER}")
         
         # Fetch possible orders
-        orders_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/orders/possible/{HUMAN_POWER}")
+        orders_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/orders/possible/{HUMAN_POWER}", headers=get_headers())
         if orders_res.status_code == 200:
             orders_data = orders_res.json()
             orderable_locs = orders_data["orderable_locations"]
@@ -340,7 +358,8 @@ if not game_state["is_game_done"]:
                     if valid_submission:
                         submit_res = requests.post(
                             f"{API_URL}/game/{st.session_state.game_id}/orders",
-                            json={"power": HUMAN_POWER, "orders": current_orders}
+                            json={"power": HUMAN_POWER, "orders": current_orders},
+                            headers=get_headers()
                         )
                         if submit_res.status_code == 200:
                             st.session_state.human_orders_submitted = True
@@ -354,7 +373,8 @@ if not game_state["is_game_done"]:
             st.write("Gathering orders from all other players...")
             process_res = requests.post(
                 f"{API_URL}/game/{st.session_state.game_id}/process",
-                json={"human_power": HUMAN_POWER, "phase": current_phase}
+                json={"human_power": HUMAN_POWER, "phase": current_phase},
+                headers=get_headers()
             )
             
             if process_res.status_code == 200:
@@ -388,7 +408,7 @@ with col2:
 if not st.session_state.get('human_orders_submitted', False):
     st_autorefresh(interval=15000, key="chat_autorefresh")
 
-msg_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/messages", params={"power": HUMAN_POWER})
+msg_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/messages", params={"power": HUMAN_POWER}, headers=get_headers())
 if msg_res.status_code == 200:
     messages = msg_res.json().get("messages", [])
 else:
@@ -507,7 +527,8 @@ if st.button("Send Message", key=f"send_btn_{selected_chat}") or user_input:
                 "recipient": selected_chat,
                 "message": user_input,
                 "phase": current_phase
-            }
+            },
+            headers=get_headers()
         )
         if send_res.status_code == 200:
             st.toast("Message sent!", icon="✅")

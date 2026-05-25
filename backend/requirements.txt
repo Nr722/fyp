@@ -7,8 +7,8 @@ httpx-sse>=0.4.3
 mcp>=1.21.1
 openai-agents[litellm]
 fastapi
-jose
-jwt
+python-jose[cryptography]
+python-multipart
 pydantic
 google-genai
 langchain

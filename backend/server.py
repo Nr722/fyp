@@ -1,4 +1,7 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Request
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
 import asyncio
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -22,6 +25,38 @@ from viz import generate_history_svg, generate_current_svg
 
 from contextlib import asynccontextmanager
 
+# JWT Configuration
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 480 # 8 hours
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    return username
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
@@ -34,6 +69,10 @@ games: Dict[str, Game] = {}
 game_locks: Dict[str, threading.Lock] = {}
 game_configs: Dict[str, Dict[str, Any]] = {}
 rate_limit_events: List[Dict] = []
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
 class CreateGameRequest(BaseModel):
     human_power: str
@@ -53,8 +92,28 @@ class ProcessTurnRequest(BaseModel):
     human_power: str
     phase: Optional[str] = None
 
+@app.post("/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    admin_user = os.getenv("APP_USERNAME")
+    admin_pass = os.getenv("APP_PASSWORD")
+    
+    if not admin_user or not admin_pass:
+         raise HTTPException(status_code=500, detail="Server authentication not configured")
+
+    if form_data.username != admin_user or form_data.password != admin_pass:
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": form_data.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.post("/game/new")
-def create_game(req: CreateGameRequest):
+def create_game(req: CreateGameRequest, current_user: str = Depends(get_current_user)):
     import random
     game_id = str(uuid.uuid4())
     game = Game(map_name='standard')
@@ -75,7 +134,7 @@ def create_game(req: CreateGameRequest):
     return {"game_id": game_id, "human_power": req.human_power, "ai_powers": ai_powers}
 
 @app.get("/game/{game_id}/state")
-def get_game_state(game_id: str):
+def get_game_state(game_id: str, current_user: str = Depends(get_current_user)):
     if game_id not in games:
         raise HTTPException(status_code=404, detail="Game not found")
     game = games[game_id]
@@ -116,7 +175,7 @@ def get_game_state(game_id: str):
     }
 
 @app.get("/game/{game_id}/history/{phase_name}")
-def get_historical_map(game_id: str, phase_name: str):
+def get_historical_map(game_id: str, phase_name: str, current_user: str = Depends(get_current_user)):
     if game_id not in games:
         raise HTTPException(status_code=404, detail="Game not found")
     game = games[game_id]
@@ -138,7 +197,7 @@ def get_historical_map(game_id: str, phase_name: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/game/{game_id}/orders/possible/{power}")
-def get_possible_orders(game_id: str, power: str):
+def get_possible_orders(game_id: str, power: str, current_user: str = Depends(get_current_user)):
     if game_id not in games:
         raise HTTPException(status_code=404, detail="Game not found")
     game = games[game_id]
@@ -150,7 +209,7 @@ def get_possible_orders(game_id: str, power: str):
     }
 
 @app.post("/game/{game_id}/orders")
-def submit_orders(game_id: str, req: OrderRequest):
+def submit_orders(game_id: str, req: OrderRequest, current_user: str = Depends(get_current_user)):
     if game_id not in games:
         raise HTTPException(status_code=404, detail="Game not found")
     game = games[game_id]
@@ -162,14 +221,14 @@ def submit_orders(game_id: str, req: OrderRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/game/{game_id}/rate-limits")
-def get_rate_limits(game_id: str):
+def get_rate_limits(game_id: str, current_user: str = Depends(get_current_user)):
     global rate_limit_events
     events = list(rate_limit_events)
     # rate_limit_events = [] # Clear after reading
     return {"events": events}
 
 @app.post("/game/{game_id}/test-rate-limit")
-def test_rate_limit(game_id: str):
+def test_rate_limit(game_id: str, current_user: str = Depends(get_current_user)):
     """Debug endpoint to fake a rate limit event."""
     rate_limit_events.append({
         "bot_name": "TEST_BOT",
@@ -181,13 +240,13 @@ def test_rate_limit(game_id: str):
     return {"status": "Fake event queued"}
 
 @app.post("/game/{game_id}/clear-rate-limits")
-def clear_rate_limits(game_id: str):
+def clear_rate_limits(game_id: str, current_user: str = Depends(get_current_user)):
     global rate_limit_events
     rate_limit_events = []
     return {"status": "Cleared"}
 
 @app.post("/game/{game_id}/process")
-def process_turn(game_id: str, req: ProcessTurnRequest):
+def process_turn(game_id: str, req: ProcessTurnRequest, current_user: str = Depends(get_current_user)):
     if game_id not in games:
         raise HTTPException(status_code=404, detail="Game not found")
     game = games[game_id]
@@ -239,7 +298,7 @@ def process_turn(game_id: str, req: ProcessTurnRequest):
     }
 
 @app.get("/game/{game_id}/messages")
-def get_messages(game_id: str, power: str):
+def get_messages(game_id: str, power: str, current_user: str = Depends(get_current_user)):
     if game_id not in games:
         raise HTTPException(status_code=404, detail="Game not found")
     
@@ -336,7 +395,7 @@ def process_ai_reaction_task(game_id: str, sender: str, recipient: str, message:
                 print(f"Error handling message for bot {bot_name}: {e}")
 
 @app.post("/game/{game_id}/messages")
-def send_message(game_id: str, req: MessageRequest):
+def send_message(game_id: str, req: MessageRequest, current_user: str = Depends(get_current_user)):
     if game_id not in games:
         raise HTTPException(status_code=404, detail="Game not found")
     game = games[game_id]
