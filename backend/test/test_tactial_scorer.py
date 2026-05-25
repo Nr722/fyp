@@ -3,7 +3,7 @@ import os
 import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from function_tools.tactial_scorer import score_individual_orders
+from function_tools.tactical_scorer import score_individual_orders
 
 class MockMap:
     def __init__(self):
@@ -109,3 +109,46 @@ def test_convoy_bonus():
     # AttackEnemyCenter via Convoy(150 + 50) + Base(10) = 210
     move_score = scores["ENG"][0]["score"]
     assert move_score == 210
+
+def test_cut_support_risk():
+    # Setup game where France offers support but is adjacent to a hostile Germany unit
+    game = MockGame()
+    game.orderable_locs = ["BUR"]
+    game.units = {"FRANCE": ["A BUR"], "GERMANY": ["A MUN"]} # BUR is adjacent to MUN
+    game.centers = {"FRANCE": ["PAR"]}
+    game.possible_orders = {"BUR": ["A BUR S A PAR - MAR"]}
+    
+    scores = score_individual_orders(game, "FRANCE")
+    
+    # Base(10) + DefensiveSupport(30) - CutRisk(25 * 1 enemy neighbor) = 15
+    move_score = scores["BUR"][0]["score"]
+    assert move_score == 15
+
+def test_defensive_hold_bonus():
+    # Setup game where Germany holds MUN surrounded by 2 enemies (BUR, BER)
+    game = MockGame()
+    game.orderable_locs = ["MUN"] # Adjacent to BUR, BER, KIE
+    game.units = {"GERMANY": ["A MUN"], "FRANCE": ["A BUR"], "RUSSIA": ["A BER"]}
+    game.centers = {"GERMANY": ["MUN"]}
+    game.possible_orders = {"MUN": ["A MUN H"]}
+    
+    scores = score_individual_orders(game, "GERMANY")
+    
+    # Base(10) + HoldSC(40) + HoldFrontLine(50) + TurtleBonus(80) = 180
+    move_score = scores["MUN"][0]["score"]
+    assert move_score == 180
+
+def test_anti_convoy_motivation():
+    # Setup game where France attacks a fleet in the English Channel
+    game = MockGame()
+    game.orderable_locs = ["LON"] # France in LON attacks ENG
+    game.units = {"FRANCE": ["F LON"], "ENGLAND": ["F ENG"]}
+    game.centers = {"FRANCE": ["LON"]}
+    game.possible_orders = {"LON": ["F LON - ENG"]}
+    
+    scores = score_individual_orders(game, "FRANCE")
+    
+    # Base(10) + AttackEnemy(50) - Unsupported(60) + AntiConvoySeaZone(40) + UnownedSCAdj(20) = 60
+    move_score = scores["LON"][0]["score"]
+    assert "F LON - ENG" == scores["LON"][0]["order"]
+    assert move_score == 60

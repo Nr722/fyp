@@ -1,0 +1,19 @@
+[project]
+name = "my-ai-frontend"
+version = "0.1.0"
+description = "Streamlit frontend for Diplomacy AI Agent"
+requires-python = ">=3.10"
+dependencies = [
+    "streamlit",
+    "streamlit-autorefresh",
+    "python-dotenv",
+    "requests",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[tool.uv]
+package = false

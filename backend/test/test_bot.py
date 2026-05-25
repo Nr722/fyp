@@ -101,3 +101,82 @@ def test_invoke_with_retry_logic():
     
     assert result == "Success"
     assert mock_model.invoke.call_count == 2
+
+@patch('bot.bot.invoke_with_retry')
+@patch('bot.bot.get_random_bot_orders')
+def test_finalize_ai_bot_orders_fallback(mock_get_random, mock_invoke):
+    """
+    Tests that if the LLM continuously hallucinates malformed responses or invalid formats,
+    the system correctly falls back to random/default orders.
+    """
+    game = Game()
+    # Let the retry throw a Pydantic validation error or JSON decode error
+    mock_invoke.side_effect = Exception("ValidationError: Malformed JSON")
+    
+    mock_get_random.return_value = (["A PAR H", "A MAR H", "F BRE H"], None)
+    
+    orders = finalize_ai_bot_orders(game, "FRANCE", "test_game_1")
+    
+    # Should fall back to random orders after 3 failed LLM attempts
+    assert mock_invoke.call_count == 3
+    assert mock_get_random.called
+    assert "A PAR H" in orders
+
+@patch('bot.bot.invoke_with_retry')
+def test_finalize_ai_bot_orders_correction(mock_invoke):
+    """
+    Tests that a hallucinated order (e.g. invalid territory or consistency error)
+    prompts a retry and succeeds when corrected.
+    """
+    game = Game()
+    
+    # First response has a non-existent territory FAKE
+    bad_response = BotOrderResponse(
+        reasoning="I am hallucinating.",
+        orders=[
+            OrderItem(location="FAKE", order="A FAKE - BUR"),
+            OrderItem(location="MAR", order="A MAR H"),
+            OrderItem(location="BRE", order="F BRE - PIC")
+        ]
+    )
+    
+    good_response = BotOrderResponse(
+        reasoning="I fixed it.",
+        orders=[
+            OrderItem(location="PAR", order="A PAR - BUR"),
+            OrderItem(location="MAR", order="A MAR H"),
+            OrderItem(location="BRE", order="F BRE - PIC")
+        ]
+    )
+    
+    mock_invoke.side_effect = [bad_response, good_response]
+    
+    orders = finalize_ai_bot_orders(game, "FRANCE", "test_game_1")
+    
+    assert mock_invoke.call_count == 2
+    assert "A PAR - BUR" in orders
+
+@patch('function_tools.db.get_connection')
+def test_get_common_context_non_movement(mock_get_conn):
+    """
+    Tests the context builder for adjusting prompt logic during Retreats and Winter phases.
+    """
+    game = MagicMock()
+    
+    # Manually hack phase for test purposes
+    game.get_current_phase.return_value = "F1901R"
+    game.get_state.return_value = {'units': {}, 'centers': {}}
+    game.get_phase_history.return_value = []
+    
+    mock_conn = MagicMock()
+    mock_get_conn.return_value = mock_conn
+    mock_cursor = mock_conn.cursor.return_value.__enter__.return_value
+    mock_cursor.fetchall.return_value = []
+    
+    phase, board_state, _, _, _ = _get_common_context(game, "FRANCE", "test_game_1")
+    assert phase == "F1901R"
+    
+    game.get_current_phase.return_value = "W1901A"
+    phase, _, _, _, _ = _get_common_context(game, "FRANCE", "test_game_1")
+    assert phase == "W1901A"
+

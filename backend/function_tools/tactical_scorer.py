@@ -73,6 +73,13 @@ def score_individual_orders(game, power):
                 adj_scs = [a for a in adj if a in all_centers and a not in my_centers]
                 score += len(adj_scs) * 20
                 
+                # ---------------- NEW LOGIC ----------------
+                # 3. Anti-Convoy / Disruption Motivation
+                SEA_ZONES = {'ENG', 'NTH', 'ION', 'BAL', 'BLA', 'EAS', 'WES', 'MAO', 'NAO', 'GOB', 'HEL', 'SKA', 'BAR', 'ADR', 'TYR'}
+                if target in enemy_units and target in SEA_ZONES:
+                    score += 40 # Disrupt enemy fleet / potential convoy
+                # -------------------------------------------
+                
                 # Small penalty for just moving to boring empty space
                 if score == 10:
                     score += 5 
@@ -89,6 +96,14 @@ def score_individual_orders(game, power):
                     # Supporting own unit defensively or just holding ground
                     score += 30 
                     
+                # ---------------- NEW LOGIC ----------------
+                # Cut Support Risk
+                adj = game.map.abut_list(loc)
+                enemy_neighbors = [a for a in adj if a in enemy_units]
+                if len(enemy_neighbors) > 0:
+                    score -= 25 * len(enemy_neighbors) # Risk of being cut
+                # -------------------------------------------
+                    
             # 3. Evaluate HOLD orders (e.g., "A PAR H")
             elif " H" in order:
                 # Holding a supply center is okay defensively
@@ -96,8 +111,15 @@ def score_individual_orders(game, power):
                     score += 40
                 # Holding a front line (adjacent to enemies) is good
                 adj = game.map.abut_list(loc)
-                if any(a in enemy_units for a in adj):
+                enemy_neighbors = [a for a in adj if a in enemy_units]
+                if len(enemy_neighbors) > 0:
                     score += 50
+                    
+                # ---------------- NEW LOGIC ----------------
+                # Defensive Hold (Turtling)
+                if len(enemy_neighbors) >= 2:
+                    score += 80 # Heavy turtle bonus if outnumbered
+                # -------------------------------------------
             # 4. Evaluate CONVOY orders (e.g., "F ENG C A LON - BEL")
             elif " C " in order:
                 # 'parts' looks like: ['F', 'ENG', 'C', 'A', 'LON', '-', 'BEL']

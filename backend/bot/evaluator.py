@@ -1,7 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import HumanMessage
+from bot.bot import invoke_with_retry, get_model
 import json
 import os
 import re
@@ -12,16 +11,25 @@ class AgreementEvaluation(BaseModel):
     score: Optional[int]
     reasoning: str
 
-class BatchEvaluationResponse(BaseModel):
+class BetrayalAnalysis(BaseModel):
+    is_betrayal: bool
+    betrayer: str
+    victim: str
+    description: str
+    trust_score: int = Field(description="0 to 100, where 0 is a massive unprovoked backstab")
+
+class JointEvaluationResponse(BaseModel):
     evaluations: List[AgreementEvaluation]
+    betrayals: List[BetrayalAnalysis]
 
 def evaluate_agreements(game_id: str, game: Any):
-    from function_tools.db import get_pending_agreements, update_agreement_status
+    """
+    Evaluates both formal agreements (press) and map betrayals (moves) in a single LLM call.
+    """
+    from function_tools.db import get_pending_agreements, update_agreement_status, add_agreement, get_connection
     
     pending_agreements = get_pending_agreements(game_id)
-    if not pending_agreements:
-        return
-        
+    
     # Gather orders for the current phase across all powers
     all_orders = []
     for power in game.powers:
@@ -32,143 +40,78 @@ def evaluate_agreements(game_id: str, game: Any):
     if not all_orders:
         return
         
+    phase_str = game.get_current_phase() if hasattr(game, "get_current_phase") else "Unknown Phase"
+    phase = phase_str.name if hasattr(phase_str, "name") else str(phase_str)
     orders_text = "\n".join(all_orders)
     
-    # Use Gemma model correctly
-    model = ChatGoogleGenerativeAI(model="models/gemma-4-26b-a4b-it", google_api_key=os.getenv("GEMINI_API_KEY"))
+    # We use Gemini for the complex joint task
+    model = get_model("models/gemma-4-31b-it")
     
-    batch_size = 5
-    for i in range(0, len(pending_agreements), batch_size):
-        batch = pending_agreements[i:i + batch_size]
-        
+    agreements_text = "NONE"
+    if pending_agreements:
         agreements_text = ""
-        for agreement in batch:
+        for agreement in pending_agreements:
             agreements_text += f"\n- Agreement ID: {agreement['id']}\n  {agreement['bot_country']} made an agreement with {agreement['agreed_with']}.\n  Details: \"{agreement['agreement']}\"\n"
             
-        prompt = f'''
-        You are a neutral judge in a game of Diplomacy.
+    prompt = f'''
+        You are a neutral judge in a game of Diplomacy. The current phase is {phase}.
         
-        You need to evaluate the following agreements:
+        PART 1: Evaluate Existing Agreements
+        Existing Agreements:
         {agreements_text}
         
-        The current phase orders are as follows:
+        Current phase orders:
         {orders_text}
         
-        Based ONLY on the orders above, can you judge if the 'agreed_with' party followed their side of the agreement this turn for each agreement?
-        If the agreement is for a future phase or cannot be judged yet, set could_judge to false and score to null.
-        If it can be judged, set could_judge to true and provide a score from 0 to 100 representing how well they followed it (e.g. 100 for perfectly followed, 0 for completely broken).
+        Instructions:
+        - Based ONLY on the orders provided, judge if the 'agreed_with' party followed their agreement.
+        - STRICT NOTATION RULES: In Diplomacy notation, 'S' denotes a Support order (e.g., "F HOL S A PIC - BEL"), while '-' denotes a Move/Attack order (e.g., "F HOL - BEL"). 
+        - If a bot promised to "Support" but issued a "Move" order into the same territory, this is a "Fake Support" betrayal and must be scored 0.
+        - If an agreement implies a long-term goal (e.g., "I'll take Belgium"), and it is a Spring phase, if their orders move them closer to the objective, set could_judge to false.
+        - If it can be judged conclusively, set could_judge to true and provide a score from 0 to 100 (100 = followed exactly, 0 = deliberately broken/attacked).
+        - INCONCLUSIVE STATE: If an order does not involve the agreed-upon territory or the agreed-upon goal, you MUST set could_judge to false. Do not default to 100 just because no rules were broken; return could_judge: false and explain that the move was neutral/positional.
+        - STRATEGIC CONTEXT: When evaluating betrayals, do not just look at the agreed-upon target. You must evaluate if the actions taken against third parties contradict the spirit of the alliance (e.g., if Russia attacks Austria *and* Germany, the attack on Germany is a betrayal, even if the attack on Austria was the agreement).
+        PART 2: Detect Unrecorded Betrayals
+        - Analyze the board moves for any clear betrayals (unprovoked attacks on allies or moves that signal a major "stab").
+        - Only report GENUINE betrayals that are clear from the orders.
         
         Respond with a JSON object exactly matching this schema:
-        {json.dumps(BatchEvaluationResponse.model_json_schema())}
-        '''
+        {json.dumps(JointEvaluationResponse.model_json_schema())}
+        '''    
+    try:
+        response = model.with_structured_output(JointEvaluationResponse).invoke([HumanMessage(content=prompt)])
         
-        try:
-            response = model.invoke([HumanMessage(content=prompt)])
-            raw_text = response.content
-            if isinstance(raw_text, list):
-                raw_text = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in raw_text)
+        # 1. Process Evaluations
+        for eval_data in response.evaluations:
+            if eval_data.could_judge and eval_data.score is not None:
+                update_agreement_status(eval_data.agreement_id, eval_data.score)
+                print(f"[Judge] Evaluated agreement {eval_data.agreement_id}: Score={eval_data.score} ({eval_data.reasoning})")
             else:
-                raw_text = str(raw_text)
+                print(f"[Judge] Agreement {eval_data.agreement_id} could not be judged yet ({eval_data.reasoning})")
+        
+        # 2. Process Map Betrayals (Unrecorded agreements)
+        for b in response.betrayals:
+            if b.is_betrayal:
+                desc = f"[MAP BETRAYAL] {b.description}"
+                # Log it as a new agreement that is already broken
+                add_agreement(game_id, b.victim, b.betrayer, desc, phase)
                 
-            # Grab the last markdown json block 
-            blocks = re.findall(r'```(?:json)?(?:\s*)(.*?)(?:\s*)```', raw_text, re.DOTALL)
-            if blocks:
-                data_dict = json.loads(blocks[-1].strip())
-            else:
-                match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-                if match:
-                    data_dict = json.loads(match.group(0))
-                else:
-                    data_dict = json.loads(raw_text)
-                
-            if "properties" in data_dict and "evaluations" not in data_dict:
-                data_dict = data_dict["properties"]
-                
-            batch_eval = BatchEvaluationResponse(**data_dict)
-            for eval_data in batch_eval.evaluations:
-                if eval_data.could_judge and eval_data.score is not None:
-                    update_agreement_status(eval_data.agreement_id, eval_data.score)
-                    print(f"Evaluated agreement {eval_data.agreement_id}: Score={eval_data.score} ({eval_data.reasoning})")
-                else:
-                    print(f"Agreement {eval_data.agreement_id} could not be judged yet ({eval_data.reasoning})")
-        except Exception as e:
-            print(f"Failed to evaluate agreement batch: {e}")
+                # Update the score immediately
+                conn = get_connection()
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            UPDATE trust_ledger SET followed = %s 
+                            WHERE game_id=%s AND bot_country=%s AND agreed_with=%s AND agreement=%s
+                        """, (b.trust_score, game_id, b.victim, b.betrayer, desc))
+                    conn.commit()
+                finally:
+                    conn.close()
+                print(f"[Judge] Logged Map Betrayal: {b.betrayer} stabbed {b.victim}")
+    except Exception as e:
+        print(f"Failed to evaluate turn: {e}")
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
-    
-    print("Running evaluator test...")
-    test_agreements = [
-        {
-            'id': 126,
-            'bot_country': 'ENGLAND',
-            'agreed_with': 'FRANCE',
-            'agreement': 'FRA/ENG DMZ in the english channel'
-        },
-        {
-            'id': 127,
-            'bot_country': 'GERMANY',
-            'agreed_with': 'ENGLAND',
-            'agreement': 'I will support your fleet into the English Channel'
-        }
-    ]
-    
-    orders_text = "[ENGLAND] F LON - ENG\n[FRANCE] A PAR H\n[GERMANY] F BEL S F LON - ENG"
-    
-    # Needs to match the actual API model string
-    model = ChatGoogleGenerativeAI(model="models/gemma-4-26b-a4b-it", google_api_key=os.getenv("GEMINI_API_KEY"))
-    
-    agreements_text = ""
-    for agreement in test_agreements:
-        agreements_text += f"\n- Agreement ID: {agreement['id']}\n  {agreement['bot_country']} made an agreement with {agreement['agreed_with']}.\n  Details: \"{agreement['agreement']}\"\n"
-        
-    prompt = f'''
-    You are a neutral judge in a game of Diplomacy.
-    
-    You need to evaluate the following agreements:
-    {agreements_text}
-    
-    The current phase orders are as follows:
-    {orders_text}
-    
-    Based ONLY on the orders above, can you judge if the 'agreed_with' party followed their side of the agreement this turn for each agreement?
-    If the agreement is for a future phase or cannot be judged yet, set could_judge to false and score to null.
-    If it can be judged, set could_judge to true and provide a score from 0 to 100 representing how well they followed it (e.g. 100 for perfectly followed, 0 for completely broken).
-    
-    Respond with a JSON object exactly matching this schema:
-    {json.dumps(BatchEvaluationResponse.model_json_schema())}
-    '''
-    
-    try:
-        print("Invoking LLM...")
-        response = model.invoke([HumanMessage(content=prompt)])
-        raw_text = response.content
-        
-        if isinstance(raw_text, list):
-            raw_text = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in raw_text)
-        else:
-            raw_text = str(raw_text)
-            
-        print(f"Raw LLM Response:\n{raw_text}")
-        
-        # Grab the last markdown json block 
-        blocks = re.findall(r'```(?:json)?(?:\s*)(.*?)(?:\s*)```', raw_text, re.DOTALL)
-        if blocks:
-            data_dict = json.loads(blocks[-1].strip())
-        else:
-            match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-            if match:
-                data_dict = json.loads(match.group(0))
-            else:
-                data_dict = json.loads(raw_text)
-            
-        if "properties" in data_dict and "evaluations" not in data_dict:
-            data_dict = data_dict["properties"]
-            
-        batch_eval = BatchEvaluationResponse(**data_dict)
-        print(f"\nParsed correctly:")
-        for eval_data in batch_eval.evaluations:
-            print(f"ID {eval_data.agreement_id}: could_judge={eval_data.could_judge}, score={eval_data.score}, reasoning={eval_data.reasoning}")
-    except Exception as e:
-        print(f"\nFailed to evaluate: {e}")
+    print("Combined evaluator script available.")

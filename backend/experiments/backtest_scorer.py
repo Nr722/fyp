@@ -5,7 +5,7 @@ from diplomacy import Game
 
 # Ensure we can import from the backend
 sys.path.append(os.getcwd())
-from function_tools.tactial_scorer import score_individual_orders
+from function_tools.tactical_scorer import score_individual_orders
 
 def backtest_scorer(file_path):
     with open(file_path, 'r') as f:

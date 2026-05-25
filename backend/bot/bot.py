@@ -10,17 +10,17 @@ from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, System
 from bot.models import BotTurnResponse, BotReactionResponse, BotOrderResponse
 from diplomacy.engine.game import Game
 from bot.random_bot import get_random_bot_orders
-from deploy.backend.function_tools.db import add_agreement, get_trust_history
+from function_tools.db import add_agreement, get_trust_history
 from function_tools.move_validator import check_internal_consistency
-from function_tools.tactial_scorer import score_individual_orders
+from function_tools.tactical_scorer import score_individual_orders
 
 load_dotenv()
 
 chat_histories = {}
 
-def get_model(model_name="models/gemini-3.1-flash-lite-preview"):
+def get_model(model_name="models/gemini-3.1-flash-lite"):
     return ChatGoogleGenerativeAI(model=model_name, google_api_key=os.getenv("GEMINI_API_KEY"))
-
+    
 def invoke_with_retry(model, history, max_retries=4, initial_delay=5, bot_name="Bot"):
     for attempt in range(max_retries):
         try:
@@ -48,16 +48,31 @@ def _get_common_context(game, bot_name, game_id, include_tactical=False):
     for p in board_state.get('units', {}).keys():
         units = board_state['units'].get(p, [])
         centers = board_state['centers'].get(p, [])
-        board_state_text += f"- {p}: {len(centers)} Supply Centers, {len(units)} Units\n"
+        board_state_text += f"- {p}: {len(centers)} Supply Centers ({', '.join(centers)}), {len(units)} Units ({', '.join(units)})\n"
 
     prev_turn_text = ""
     past_phases = game.get_phase_history()
     if past_phases:
         last_phase = past_phases[-1]
-        prev_turn_text += f"\nPREVIOUS PHASE RESULTS:\n"
+        prev_turn_text = f"\nPREVIOUS PHASE ({last_phase.name}) ORDERS:\n"
+        last_orders = getattr(last_phase, 'orders', {})
+        has_orders = False
+        for p, p_orders in last_orders.items():
+            if p_orders:
+                prev_turn_text += f"- {p}: {', '.join(p_orders)}\n"
+                has_orders = True
+        if not has_orders:
+            prev_turn_text += "No active orders were submitted in the previous phase.\n"
+            
         last_results = getattr(last_phase, 'results', {})
+        prev_turn_text += "\nPREVIOUS PHASE RESULTS:\n"
+        has_results = False
         for loc, res in last_results.items():
-            if res: prev_turn_text += f"- {loc}: {', '.join([str(r) for r in res])}\n"
+            if res:
+                prev_turn_text += f"- {loc}: {', '.join([str(r) for r in res])}\n"
+                has_results = True
+        if not has_results:
+            prev_turn_text += "No conflict/bouncing results in the previous phase.\n"
 
     trust_history_text = ""
     if game_id:
@@ -65,9 +80,21 @@ def _get_common_context(game, bot_name, game_id, include_tactical=False):
         try:
             conn = get_connection()
             with conn.cursor() as cur:
-                cur.execute("SELECT agreed_with, agreement, followed, phase_made FROM trust_ledger WHERE game_id=%s AND bot_country=%s AND followed IS NOT NULL", (game_id, bot_name))
+                cur.execute("SELECT agreed_with, agreement, followed, phase_made FROM trust_ledger WHERE game_id=%s AND bot_country=%s", (game_id, bot_name))
+                past_text = ""
+                active_text = ""
                 for row in cur.fetchall():
-                    trust_history_text += f"- {row[0]} {'FOLLOWED' if row[2] else 'BROKEN'} agreement from {row[3]}: '{row[1]}'\n"
+                    if row[2] is not None:
+                        # Since score is out of 100, let's treat anything >= 50 as followed, else broken
+                        status = "FOLLOWED" if int(row[2]) >= 50 else "BROKEN"
+                        past_text += f"- {row[0]} {status} agreement from {row[3]}: '{row[1]}'\n"
+                    else:
+                        active_text += f"- Active agreement with {row[0]} (made in {row[3]}): '{row[1]}'\n"
+                
+                if past_text:
+                    trust_history_text += "PAST TRUST HISTORY:\n" + past_text
+                if active_text:
+                    trust_history_text += "CURRENT ACTIVE AGREEMENTS (You MUST follow these early game unless stabbing is overwhelmingly advantageous):\n" + active_text
             conn.close()
         except Exception: pass
 
@@ -84,26 +111,28 @@ def _init_bot_history(bot_name, session_key):
     if session_key not in chat_histories:
         print(f"Creating new history for {session_key}")
         system_prompt = f"""We are playing Diplomacy. You are {bot_name}.
-You are a pragmatic, highly competitive human player. You type quickly using lowercase, abbreviations, and sentence fragments (e.g., "rum", "bounce", "dmz"). Maintain a confident tone. Ensure your survival by forging alliances and staying paranoid.
+You are a highly skilled, pragmatic, and ruthlessly calculating human player in a competitive online tournament. You type using abbreviations, and sentence fragments (e.g., "rum", "bounce", "dmz"). You use alliances as tools to win. In the early game, actively form alliances and stick strictly to your agreed orders to build long-term trust. You appear conversational and polite. Stabbing an ally should ONLY be done if the TACTICAL ANALYSIS shows the immediate gain significantly outweighs the strategic cost of losing that ally and their trust. Prioritize your path to 18 centers.
 
 STRICT RULES:
 1. ORDER LIMIT: Provide ONE valid order for every unit location listed (when finalizing orders).
 2. CONVOYS: Pair every Army 'VIA' with a corresponding Fleet 'C'.
-3. SECRECY & MISDIRECTION: Guard your true tactical orders. Do not broadcast your literal moves in chat.
-4. COMMUNICATION STYLE: Brevity (short fragments), lowercase text, ask questions rather than declaring your whole hand. Speak decisively without apologies. Only reply if necessary.
-5. PLAUSIBLE LIES: Ground your communication, justifications, and misdirection in actual facts from the current board state (e.g., true unit positions, exact center counts). Pure fabrication is easily caught by humans who verify the board and talk to others.
+3. SECRECY & MISDIRECTION: Guard your true tactical orders. Frame misdirection collaboratively by proposing joint moves that secretly benefit you more or keep victims unsuspecting.
+4. COMMUNICATION STYLE: Conversational, pragmatic. Use filler like "hmm", "yeah". Actively propose specific moves that advance your position or provide mutual benefit to gain trust while focussing on your win. If the conversation has naturally ended or does not need a response to plan moves in the game, return an empty messages list to stay silent.
+5. PLAUSIBLE LIES: Ground your communication, justifications, and misdirection in actual facts from the current board state. Pure fabrication is easily caught.
+6. PERSUASION & EMOTION: Be highly persuasive and sometimes emotional to influence players. If another player betrays you (e.g. breaks a past agreement or invades your supply centers), hold a grudge, act vindictive, and be wary of trusting them again.
+7. GOSSIP & LEVERAGE: Use your trust history with other players as a tool. Gossip and tell players about your conversations or agreements with others to build trust or manipulate them.
 
-MANAGING BETRAYALS (POST-STAB COMMUNICATION):
-If you recently betrayed someone, broke an agreement, or are being accused of it, use one of these distinct strategies to manage fallout:
-- Preemptive Gaslight: Claim you only attacked because you KNEW they were going to betray you first ("saw u plotting with england, had to protect myself"). Shift the blame.
-- Mathematical Inevitability: Frame it as purely tactical business ("nothing personal, just needed the center to stop germany from winning").
-- Crocodile Tears: Act like the decision agonized you or you were forced into it ("im so sorry man, france forced my hand otherwise he beats me").
-- Ghosting: Simply do not reply to their angry messages (return an empty messages array to ignore them).
+MANAGING CONFLICT & FALLOUT:
+If a conflict arises, someone is angry, or you need to manage the fallout of a broken agreement, use these strategies:
+- Defusion & Questions: Ask questions to defuse hostility ("damn, what's your plan then?", "how can we fix this?").
+- Tactical Apologies: Express regret even if it was intentional, to save the relationship ("bummer about bur, im so sorry, was worried about germany").
+- Pivot to Shared Enemies: Redirect anger towards a larger common threat ("we need to stop fighting or russia will run away with it").
+- Propose Alternatives: Immediately offer a mutually beneficial compromise instead of fighting.
 """
         chat_histories[session_key] = [SystemMessage(content=system_prompt)]
 
-def get_ai_bot_messages(game, bot_name: str, game_id: str):
-    phase, board_state_text, prev_turn_text, trust_history_text, _ = _get_common_context(game, bot_name, game_id)
+def get_ai_bot_messages(game, bot_name: str, game_id: str, use_tactical: bool = True):
+    phase, board_state_text, prev_turn_text, trust_history_text, tactical_context = _get_common_context(game, bot_name, game_id, include_tactical=use_tactical)
     session_key = f"{game_id}_{bot_name}"
     _init_bot_history(bot_name, session_key)
     
@@ -111,8 +140,9 @@ def get_ai_bot_messages(game, bot_name: str, game_id: str):
 {board_state_text}
 {prev_turn_text}
 {trust_history_text}
-
-The communication phase has begun. Who do you want to talk to? Propose trades, probe for information, or distract. Do not announce your exact moves. Keep your message short and lowercase.
+{tactical_context}
+Look at the previous turn's orders and results to see what the other players are trying to do, and use that to inform your strategy.
+The communication phase has begun. Who do you want to talk to? Use your TACTICAL ANALYSIS to propose specific, concrete joint moves, boundaries, or alliances. If there is no specific coordination needed, or you have nothing new to say, return an empty messages list. Do NOT send messages just to make small talk or catch up. Do not announce your exact moves, but use the analysis to guide your requests. When accepting a proposal or agreeing to a pact, explicitly confirm the accepted terms using clear closing words (e.g., "i accept this deal", "agreed to dmz"). Keep your message short and lowercase.
 """
     history = chat_histories[session_key]
     history.append(HumanMessage(content=prompt))
@@ -126,11 +156,11 @@ The communication phase has begun. Who do you want to talk to? Propose trades, p
         print(f"AI Bot Message Error for {bot_name}: {e}")
         return []
 
-def finalize_ai_bot_orders(game, bot_name: str, game_id: str):
+def finalize_ai_bot_orders(game, bot_name: str, game_id: str, use_tactical: bool = True):
     valid_orders = {loc: game.get_all_possible_orders().get(loc, []) for loc in game.get_orderable_locations(bot_name)}
     if not valid_orders: return []
 
-    phase, board_state_text, prev_turn_text, trust_history_text, tactical_context = _get_common_context(game, bot_name, game_id, include_tactical=True)
+    phase, board_state_text, prev_turn_text, trust_history_text, tactical_context = _get_common_context(game, bot_name, game_id, include_tactical=use_tactical)
     session_key = f"{game_id}_{bot_name}"
     _init_bot_history(bot_name, session_key)
 
@@ -169,12 +199,12 @@ Available Locations and Valid Options:
             continue
     return get_random_bot_orders(game, bot_name)[0]
 
-def get_bot_messages(game, bot_name, bot_type="random", game_id=None):
+def get_bot_messages(game, bot_name, bot_type="random", game_id=None, use_tactical=True):
     if bot_type == "ai" and game_id is not None:
-        return get_ai_bot_messages(game, bot_name, game_id=game_id)
+        return get_ai_bot_messages(game, bot_name, game_id=game_id, use_tactical=use_tactical)
     return []
 
-def get_bot_orders(game, bot_name, bot_type="random", game_id=None):
+def get_bot_orders(game, bot_name, bot_type="random", game_id=None, use_tactical=True):
     if bot_type == "ai" and game_id is not None:
-        return finalize_ai_bot_orders(game, bot_name, game_id=game_id)
+        return finalize_ai_bot_orders(game, bot_name, game_id=game_id, use_tactical=use_tactical)
     return get_random_bot_orders(game, bot_name)[0]

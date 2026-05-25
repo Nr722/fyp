@@ -7,6 +7,8 @@ class RichRenderer(Renderer):
         super().__init__(game, **kwargs)
         self.adjudication_data = adjudication_data or {}
 
+    FAILED_MOVE_COLOR = '#800000'
+
     def _get_order_status(self, src_loc, power_name):
         if not self.adjudication_data:
             return []
@@ -81,10 +83,10 @@ class RichRenderer(Renderer):
         line_with_shadow.setAttribute('stroke-width', str(self._plain_stroke_width()))
 
         # Check status
-        status = self._get_order_status(src_loc, power_name)
-        status_str = str(status) # list to string
-        is_bounce = 'bounce' in status_str
-        is_void = 'void' in status_str
+        status = set(self._get_order_status(src_loc, power_name))
+        is_bounce = 'bounce' in status
+        is_void = 'void' in status
+        is_failed_move = is_bounce or is_void
 
         # Arrow
         line_with_arrow = xml_map.createElement('line')
@@ -93,15 +95,12 @@ class RichRenderer(Renderer):
         line_with_arrow.setAttribute('x2', dest_x_s)
         line_with_arrow.setAttribute('y2', dest_y_s)
         line_with_arrow.setAttribute('class', 'varwidthorder')
-        line_with_arrow.setAttribute('stroke', self.metadata['color'][power_name])
+        line_with_arrow.setAttribute('stroke', self.FAILED_MOVE_COLOR if is_failed_move else self.metadata['color'][power_name])
         line_with_arrow.setAttribute('stroke-width', str(self._colored_stroke_width()))
         line_with_arrow.setAttribute('marker-end', 'url(#arrow)')
 
         if is_bounce:
             line_with_arrow.setAttribute('stroke-dasharray', '10,5')
-        
-        if is_void:
-            line_with_arrow.setAttribute('opacity', '0.3')
 
         g_node.appendChild(line_with_shadow)
         g_node.appendChild(line_with_arrow)
@@ -201,12 +200,12 @@ def generate_history_svg_for_phase(game, phase_name, output_path):
     temp_game = Game(map_name=game.map_name)
     temp_game.set_phase_data(target_phase_data)
     apply_webdip_default_borders(temp_game)
-    
-    # We would need the status dictionary for that specific phase
-    # The diplomacy package stores it in the Game object, but recreating exactly the old status is tricky
-    # For now, we will render it without order pass/fail colors if we can't extract the old status, 
-    # but the orders arrow will still render!
-    renderer = RichRenderer(temp_game, adjudication_data={})
+
+    adjudication_game = Game(map_name=game.map_name)
+    adjudication_game.set_phase_data(target_phase_data)
+    adjudication_game.process()
+
+    renderer = RichRenderer(temp_game, adjudication_data=adjudication_game.get_order_status())
     renderer.render(incl_orders=True, incl_abbrev=True, output_path=output_path)
     
     return output_path

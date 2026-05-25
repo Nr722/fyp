@@ -336,7 +336,7 @@ def process_ai_reaction_task(game_id: str, sender: str, recipient: str, message:
                 print(f"Error handling message for bot {bot_name}: {e}")
 
 @app.post("/game/{game_id}/messages")
-def send_message(game_id: str, req: MessageRequest, bg_tasks: BackgroundTasks):
+def send_message(game_id: str, req: MessageRequest):
     if game_id not in games:
         raise HTTPException(status_code=404, detail="Game not found")
     game = games[game_id]
@@ -352,8 +352,10 @@ def send_message(game_id: str, req: MessageRequest, bg_tasks: BackgroundTasks):
     # Save the human's message to NeonDB
     save_message(game_id, req.sender, req.recipient, req.message, req.phase)
     
-    # Trigger AI reaction in the background
-    bg_tasks.add_task(process_ai_reaction_task, game_id, req.sender, req.recipient, req.message, req.phase)
+    # Process AI reaction SYNCHRONOUSLY instead of in background
+    # This prevents the race condition where the user ends the phase 
+    # and processes the turn before the AI finishes logging the agreement.
+    process_ai_reaction_task(game_id, req.sender, req.recipient, req.message, req.phase)
             
     return {"status": "success"}
 

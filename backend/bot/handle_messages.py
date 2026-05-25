@@ -3,10 +3,11 @@ import re
 from langchain_core.messages import HumanMessage, AIMessage
 from bot.models import BotReactionResponse
 from bot.bot import chat_histories, get_model, invoke_with_retry
-from deploy.backend.function_tools.db import add_agreement
+from function_tools.db import add_agreement
 from function_tools.move_validator import check_internal_consistency
+from function_tools.tactical_scorer import score_individual_orders
 
-def handle_incoming_message(game, bot_name: str, sender: str, message: str, game_id: str, recipient: str = None):
+def handle_incoming_message(game, bot_name: str, sender: str, message: str, game_id: str, recipient: str = None, use_tactical: bool = True):
     """
     Called when a message is sent to an AI bot.
     The bot can reply and optionally update its orders.
@@ -63,31 +64,63 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     trust_history_text = ""
 
     if game_id:
-        from deploy.backend.function_tools.db import get_connection
+        from function_tools.db import get_connection
         try:
             conn = get_connection()
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT agreed_with, agreement, followed, phase_made
-                    FROM trust_ledger WHERE game_id=%s AND bot_country=%s AND agreed_with=%s AND followed IS NOT NULL
-                """, (game_id, bot_name, sender.upper()))
+                    FROM trust_ledger WHERE game_id=%s AND bot_country=%s
+                """, (game_id, bot_name))
                 history_rows = cur.fetchall()
             conn.close()
             if history_rows:
-                trust_history_text = f"\nTRUST LEDGER (Past agreements with {sender} and whether they followed them):\n"
+                past_text = ""
+                active_text = ""
+                other_past_text = ""
+                other_active_text = ""
                 for row in history_rows:
-                    status = "FOLLOWED" if row[2] else "BROKEN"
-                    trust_history_text += f"- {sender} {status} agreement made in {row[3]}: '{row[1]}'\n"
+                    if row[0] == sender.upper():
+                        if row[2] is not None:
+                            status = "FOLLOWED" if int(row[2]) >= 50 else "BROKEN"
+                            past_text += f"- {sender} {status} agreement made in {row[3]}: '{row[1]}'\n"
+                        else:
+                            active_text += f"- Active agreement with {sender} made in {row[3]}: '{row[1]}'\n"
+                    else:
+                        if row[2] is not None:
+                            status = "FOLLOWED" if int(row[2]) >= 50 else "BROKEN"
+                            other_past_text += f"- {row[0]} {status} agreement from {row[3]}: '{row[1]}'\n"
+                        else:
+                            other_active_text += f"- Active agreement with {row[0]} made in {row[3]}: '{row[1]}'\n"
+                
+                if past_text:
+                    trust_history_text += f"\nTRUST LEDGER (Past agreements with {sender}):\n{past_text}"
+                if active_text:
+                    trust_history_text += f"\nACTIVE AGREEMENTS with {sender}:\n{active_text}"
+                if other_past_text or other_active_text:
+                    trust_history_text += f"\nAGREEMENTS WITH OTHER PLAYERS (Use these for gossip or leverage!):\n{other_past_text}{other_active_text}"
+        except Exception as e:
+            pass
+
+    tactical_context = ""
+    # Added conditional block for use_tactical flag
+    if use_tactical:
+        try:
+            scored_options = score_individual_orders(game, bot_name)
+            tactical_context = "\nTACTICAL ANALYSIS (Top Orders per Unit):\n"
+            for loc, options in scored_options.items():
+                tactical_context += f"Unit {loc}:\n" + "".join([f"  - {opt['order']} (Score: {opt['score']})\n" for opt in options])
         except Exception as e:
             pass
 
     prompt = f"""
-    You are {bot_name}, a pragmatic, highly competitive human player in an online tournament.
-    You type quickly using lowercase, abbreviations, and sentence fragments (e.g., "rum", "east med", "bounce", "dmz"). Maintain a confident, unapologetic, and direct tone. Build temporary alliances while aggressively seeking your 18-center win condition.
+    You are {bot_name}, a highly skilled, pragmatic, and ruthlessly calculating human player in a competitive online tournament.
+    You type using abbreviations, and sentence fragments (e.g., "rum", "east med", "bounce", "dmz"). Maintain a conversational and informative tone to build alliances, but remember that trust is a tool. In the early game, actively form alliances and strictly follow through with agreed orders to build trust. You should ONLY backstab or break agreements if your TACTICAL ANALYSIS gives you a significant advantage that clearly outweighs the strategic cost of losing that ally. Prioritize your own growth and the 18-center win condition.
 
     Current Phase: {phase}
     {board_state_text}
     {prev_turn_text}
+    {tactical_context}
 
     You just received {context_str} from {sender}:
     "{message}"
@@ -95,18 +128,21 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
     {trust_history_text}
     
     RULES FOR REPLYING:
-    1. STRATEGIC COMMUNICATION: Reply only when it advances your position. Use brief, competitive responses. Reply to 'GLOBAL' for global messages or '{sender}' for private ones.
-    2. SECRECY & MISDIRECTION: Unilaterally declaring your own strict intentions ruins your advantage. Ask questions, float conditions, or lie. NEVER just announce "I am taking X."
-    3. BOARD AWARENESS: Ground all statements and proposals strictly in the reality of the CURRENT BOARD STATE.
+    1. STRATEGIC COMMUNICATION: Engage to build useful alliances or coordinate moves that benefit you. Reply to 'GLOBAL' for global messages or '{sender}' for private ones. You DO NOT need to reply to every message. If you are forming a pact or accepting a proposal, explicitly confirm the accepted terms using clear closing words (e.g., "i accept this deal", "agreed to dmz"). If the conversation is over and a plan has been explicitly confirmed by both sides, return an empty messages list to stay silent.
+    2. SECRECY & MISDIRECTION: Do not offer zero-sum demands early on, people often want their own benefit, therfore mutual benefits are important. Prioritize actively proposing specific moves based on your TACTICAL ANALYSIS and your own judgement If it helps to gain trust as a tool, be willing to help them but keep your own position in mind as you want to win. If you plan to stab them, keep them unsuspecting and friendly.
+    3. BOARD AWARENESS: Ground all statements and proposals strictly in the reality of the CURRENT BOARD STATE and TACTICAL ANALYSIS.
     4. SYNTAX: Maintain valid communication format.
-    5. COMMUNICATION STYLE:
-    - Brevity: Use short fragments and lowercase text.
-    - Inquiry: Ask them about their plans instead of dictating your own ("whats the play?", "u taking serbia?").
-    - Confidence: Speak decisively without offering apologies.
-
+    5. Communication Style: Empathy vs Coldness: Use tactical apologies to defuse unwanted conflict, but do not hesitate to drop dead weight alliances.
+    6. PERSUASION & EMOTION: Be highly persuasive and sometimes emotional to influence players. If {sender} or another player betrays you (e.g. breaks a past agreement or invades your supply centers), hold a grudge, act vindictive, and let them know you are angry.
+    7. GOSSIP & LEVERAGE: Use your trust history with other players as a tool. Gossip and tell {sender} about your conversations or agreements with others to build trust or manipulate them.
     IMPORTANT ABOUT AGREEMENTS:
-    Log an agreement ONLY if the message from {sender} explicitly proposed it AND you are explicitly ACCEPTING it now. Log defined mutual pacts (e.g., "We agree to DMZ the English Channel"). Do ignore unilateral proposals you are merely suggesting.
-    
+    Log an agreement if you have reached a clear mutual understanding or pact with the sender (e.g., "We agree to DMZ the English Channel"). This includes if they accept a proposal you just made, or if you accept a proposal they just made. Ignore unilateral proposals that haven't been accepted by both sides yet.
+    MANAGING CONFLICT & FALLOUT:
+    If a conflict arises, someone is angry, or you need to manage the fallout of a broken agreement, use these strategies:
+    - Defusion & Questions: Ask questions to defuse hostility ("damn, what's your plan then?", "how can we fix this?").
+    - Tactical Apologies: Express regret even if it was intentional, to save the relationship ("bummer about bur, im so sorry, was worried about germany").
+    - Pivot to Shared Enemies: Redirect anger towards a larger common threat ("we need to stop fighting or russia will run away with it").
+    - Propose Alternatives: Immediately offer a mutually beneficial compromise instead of fighting.
     
     
     REMINDER: When generating your reply 'messages', DO NOT simply announce your tactical plans to the sender. Ask questions, deflect, lie, or propose conditions instead.
@@ -127,8 +163,6 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
             
             data = response
             
-            
-
             break # Parsed and validated successfully!
 
         if not data:
