@@ -57,6 +57,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return username
 
+load_dotenv()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
