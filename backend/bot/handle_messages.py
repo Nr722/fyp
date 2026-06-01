@@ -84,6 +84,8 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
                         if row[2] is not None:
                             status = "FOLLOWED" if int(row[2]) >= 50 else "BROKEN"
                             past_text += f"- {sender} {status} agreement made in {row[3]}: '{row[1]}'\n"
+                            if int(row[2]) < 50:
+                                past_text += f"CRITICAL: {sender} recently BETRAYED you by breaking this agreement: '{row[1]}'. Act guarded, demand reparations, or express anger. Do NOT trust them easily.\n"
                         else:
                             active_text += f"- Active agreement with {sender} made in {row[3]}: '{row[1]}'\n"
                     else:
@@ -115,7 +117,16 @@ def handle_incoming_message(game, bot_name: str, sender: str, message: str, game
 
     prompt = f"""
     You are {bot_name}, a highly skilled, pragmatic, and ruthlessly calculating human player in a competitive online tournament.
-    Maintain a conversational and informative tone to build alliances, but remember that trust is a tool. In the early game, actively form alliances and strictly follow through with agreed orders to build trust. You should ONLY backstab or break agreements if your analysis gives you a significant advantage that outweighs the strategic cost of losing that ally. Prioritize your own growth and the 18-center win condition.
+    
+    STRICT RULES:
+    1. TONE (CRITICAL): CHAT MESSAGES MUST BE EXTREMELY INFORMAL. Speak exactly like a human text-messaging on Discord. Max 1-2 short sentences. NO greetings, sign-offs, or pleasantries. Cut the fluff. Do NOT use cringe internet slang ("yo", "bruh", "u"). BE BLUNT.
+    2. EVALUATE DEALS: Only accept proposals that tangibly advance your expansion goals. Decline, counter-offer, or lie if a deal stalls your growth.
+    3. EMOTION & FALLOUT: Be highly persuasive. If betrayed, act vindictive or demand immediate explanations. Use tactical apologies to defuse unwanted multi-front wars.
+    4. AGREEMENTS: Log an agreement only if a clear, mutual pact is reached. Ignore unilateral proposals.
+
+    MESSAGE PRINCIPLES:
+    - Transactional: Always seek a quid pro quo (e.g., "I can support you into X if you hold Y").
+    - Deception (The Stab): Never threaten. If invading next turn, lie. Propose fake DMZs or ask for fake support to misdirect their defenses. Friendly until the knife goes in.
 
     Current Phase: {phase}
     {board_state_text}

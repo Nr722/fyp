@@ -1,22 +1,24 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from bot.bot import invoke_with_retry, get_model
+from langchain_core.messages import HumanMessage
 import json
 import os
 import re
 
 class AgreementEvaluation(BaseModel):
-    agreement_id: int
-    could_judge: bool
-    score: Optional[int]
-    reasoning: str
+    agreement_id: int = Field(description="The ID of the agreement being evaluated.")
+    reasoning: str = Field(description="Chain of thought reasoning. Analyze text of agreement vs exact orders. STRATEGIC CONTEXT: Evaluate if actions taken against third parties contradict the spirit of the alliance (e.g. attacking an ally's other ally).")
+    could_judge: bool = Field(description="Set to true if you can conclusively judge based ONLY on provided orders. INCONCLUSIVE STATE: If an order does not involve the agreed-upon territory/goal, or if they move closer to a long-term goal but don't achieve it yet, MUST set to false (neutral/positional).")
+    score: Optional[int] = Field(description="If could_judge is true, provide a score from 0 to 100 (100 = followed exactly, 0 = deliberately broken/attacked). STRICT NOTATION: 'S' = Support, '-' = Move/Attack. If bot promised to 'Support' but issued a 'Move' order instead, this is a 'Fake Support' betrayal and MUST be scored 0.")
 
 class BetrayalAnalysis(BaseModel):
-    is_betrayal: bool
-    betrayer: str
-    victim: str
-    description: str
-    trust_score: int = Field(description="0 to 100, where 0 is a massive unprovoked backstab")
+    reasoning: str = Field(description="Chain of thought reasoning. Analyze the map and orders for any clear betrayals, surprise invasions, or unprovoked attacks between powers previously at peace.")
+    is_betrayal: bool = Field(description="Only report GENUINE betrayals that are clear from the orders.")
+    betrayer: str = Field(description="The power committing the betrayal.")
+    victim: str = Field(description="The power being betrayed.")
+    description: str = Field(description="Describe the betrayal. PREEMPTIVE ATTACKS: Look closely for aggressive moves into another power's home centers, critical borders, or agreed DMZs (like English Channel) without warning.")
+    trust_score: int = Field(description="0 to 100, where 0 is a massive unprovoked backstab.")
 
 class JointEvaluationResponse(BaseModel):
     evaluations: List[AgreementEvaluation]
@@ -45,7 +47,7 @@ def evaluate_agreements(game_id: str, game: Any):
     orders_text = "\n".join(all_orders)
     
     # We use Gemini for the complex joint task
-    model = get_model("models/gemma-4-31b-it")
+    model = get_model()
     
     agreements_text = "NONE"
     if pending_agreements:
@@ -62,18 +64,6 @@ def evaluate_agreements(game_id: str, game: Any):
         
         Current phase orders:
         {orders_text}
-        
-        Instructions:
-        - Based ONLY on the orders provided, judge if the 'agreed_with' party followed their agreement.
-        - STRICT NOTATION RULES: In Diplomacy notation, 'S' denotes a Support order (e.g., "F HOL S A PIC - BEL"), while '-' denotes a Move/Attack order (e.g., "F HOL - BEL"). 
-        - If a bot promised to "Support" but issued a "Move" order into the same territory, this is a "Fake Support" betrayal and must be scored 0.
-        - If an agreement implies a long-term goal (e.g., "I'll take Belgium"), and it is a Spring phase, if their orders move them closer to the objective, set could_judge to false.
-        - If it can be judged conclusively, set could_judge to true and provide a score from 0 to 100 (100 = followed exactly, 0 = deliberately broken/attacked).
-        - INCONCLUSIVE STATE: If an order does not involve the agreed-upon territory or the agreed-upon goal, you MUST set could_judge to false. Do not default to 100 just because no rules were broken; return could_judge: false and explain that the move was neutral/positional.
-        - STRATEGIC CONTEXT: When evaluating betrayals, do not just look at the agreed-upon target. You must evaluate if the actions taken against third parties contradict the spirit of the alliance (e.g., if Russia attacks Austria *and* Germany, the attack on Germany is a betrayal, even if the attack on Austria was the agreement).
-        PART 2: Detect Unrecorded Betrayals
-        - Analyze the board moves for any clear betrayals (unprovoked attacks on allies or moves that signal a major "stab").
-        - Only report GENUINE betrayals that are clear from the orders.
         
         Respond with a JSON object exactly matching this schema:
         {json.dumps(JointEvaluationResponse.model_json_schema())}

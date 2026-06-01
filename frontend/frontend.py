@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# API_URL = os.getenv("API_URL", "http://localhost:8000")
-API_URL = "https://sunny-sparkle-backend.up.railway.app"
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+# API_URL = "https://sunny-sparkle-backend.up.railway.app"
 
 def get_headers():
     if 'token' in st.session_state and st.session_state.token:
@@ -41,7 +41,7 @@ def check_rate_limits():
         pass
 
 # --- Configuration ---
-HUMAN_POWER_DEFAULT = 'FRANCE'
+HUMAN_POWER_DEFAULT = 'RANDOM'
 
 # --- Streamlit App ---
 st.set_page_config(page_title="Diplomacy", layout="wide")
@@ -155,8 +155,8 @@ all_powers = game_state["powers"]
 with st.sidebar:
     st.header("Game Controls")
 
-    # Choose human power
-    st.subheader("Human Power")
+    # View or Swap human power in the current game
+    st.subheader("Current Game View")
     new_power = st.selectbox(
         "Play as:",
         options=sorted(all_powers),
@@ -167,12 +167,17 @@ with st.sidebar:
         st.session_state.human_power = new_power
         st.rerun()
 
-    st.subheader("AI Bots")
+    st.markdown("---")
+    st.subheader("Start New Game")
+    new_game_power = st.selectbox(
+        "Starting Power:",
+        options=["RANDOM"] + sorted(all_powers)
+    )
     num_ai_bots = st.slider("Number of AI Bots", min_value=0, max_value=6, value=st.session_state.get("num_ai_bots", 6))
     st.session_state.num_ai_bots = num_ai_bots
 
-    if st.button("New Game", use_container_width=True):
-        start_new_game(st.session_state.human_power, num_ai_bots)
+    if st.button("Start New Game", use_container_width=True):
+        start_new_game(new_game_power, num_ai_bots)
         st.rerun()
 
     st.markdown("---")

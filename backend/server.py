@@ -137,17 +137,22 @@ def create_game(req: CreateGameRequest, current_user: str = Depends(get_current_
     
     # Assign AI bots
     powers = list(game.powers.keys())
-    if req.human_power in powers:
-        powers.remove(req.human_power)
+    
+    human_power = req.human_power
+    if human_power.upper() == "RANDOM":
+        human_power = random.choice(powers)
+
+    if human_power in powers:
+        powers.remove(human_power)
     
     ai_powers = random.sample(powers, min(req.num_ai_bots, len(powers)))
     game_configs[game_id] = {"ai_powers": ai_powers}
     game_locks[game_id] = threading.Lock()
     
     # Start bot reasoning for the first phase!
-    threading.Thread(target=run_bots_for_game, args=(game_id, req.human_power)).start()
+    threading.Thread(target=run_bots_for_game, args=(game_id, human_power)).start()
     
-    return {"game_id": game_id, "human_power": req.human_power, "ai_powers": ai_powers}
+    return {"game_id": game_id, "human_power": human_power, "ai_powers": ai_powers}
 
 @app.get("/game/{game_id}/state")
 def get_game_state(game_id: str, current_user: str = Depends(get_current_user)):
