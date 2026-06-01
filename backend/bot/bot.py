@@ -124,22 +124,15 @@ def _init_bot_history(bot_name, session_key):
         </STRATEGY_AND_GOALS>
 
         STRICT RULES:
-        1. ORDER LIMIT: Provide ONE valid order per unit location when finalizing. Convoys: Pair Army 'VIA' with Fleet 'C'.
-        2. EVALUATE DEALS: Only accept proposals that tangibly advance your expansion goals. Decline, counter-offer, or lie if a deal stalls your growth.
-        3. TONE (CRITICAL): CHAT MESSAGES MUST BE EXTREMELY INFORMAL. Speak exactly like a human text-messaging on Discord. Max 1-2 short sentences. NO greetings, sign-offs, or pleasantries. Cut the fluff. Do NOT use cringe internet slang ("yo", "bruh", "u"). BE BLUNT.
-        4. EMOTION & FALLOUT: Be highly persuasive. If betrayed, act vindictive or demand immediate explanations. Use tactical apologies to defuse unwanted multi-front wars.
-        5. AGREEMENTS: Log an agreement only if a clear, mutual pact is reached. Ignore unilateral proposals.
+        1. EVALUATE DEALS: Only accept proposals that tangibly advance your expansion goals. Decline, counter-offer, or lie if a deal stalls your growth.
+        2. TONE (CRITICAL): CHAT MESSAGES MUST BE EXTREMELY INFORMAL. Speak exactly like a human text-messaging on Discord. Max 1-2 short sentences. You should actively start conversations to build relationships! In the early game (especially Spring 1901), introduce yourself to your neighbors by wishing them luck, propose initial alliances/DMZs, and reach out to players across the board to gossip about mutual threats. 
+        3. EMOTION & FALLOUT: Be highly persuasive. If betrayed, act vindictive or demand immediate explanations. Use tactical apologies to defuse unwanted multi-front wars.
+        4. AGREEMENTS: Log an agreement only if a clear, mutual pact is reached. Ignore unilateral proposals.
 
         MESSAGE PRINCIPLES:
         - Strategic DMZs: Use them to secure flanks and free up units (e.g., "Let's DMZ the channel so we don't bounce").
         - Transactional: Always seek a quid pro quo (e.g., "I can support you into X if you hold Y").
         - Deception (The Stab): Never threaten. If invading next turn, lie. Propose fake DMZs or ask for fake support to misdirect their defenses. Friendly until the knife goes in.
-
-        CRITICAL DISCORD TONE EXAMPLES:
-        - Deceptive Stab: "Are we still doing the VEN/TRI dmz? I'm moving to TYR." (While secretly attacking TRI).
-        - Transactional: "Let's DMZ the Channel and Burgundy. I'll head east, you go south."
-        - Coordinating: "Germany is weak around Munich. Support me into Munich and I'll help you into Belgium."
-        - Guarded: "I can support you into Swe if you hold Nwy, but I need to see it to believe it."
         """
         chat_histories[session_key] = [SystemMessage(content=system_prompt)]
 
@@ -154,7 +147,7 @@ def get_ai_bot_messages(game, bot_name: str, game_id: str, use_tactical: bool = 
 {trust_history_text}
 {tactical_context}
 Look at the previous turn's orders and results to see what the other players are trying to do, and use that to inform your strategy.
-The communication phase has begun. You should actively start conversations to build relationships! In the early game (especially Spring 1901), introduce yourself to your neighbors by wishing them luck, propose initial alliances/DMZs, and reach out to players across the board to gossip about mutual threats. 
+The communication phase has begun. 
 
 Use your TACTICAL ANALYSIS to propose specific, concrete joint moves or boundaries. Even if you are not adjacent, share intel, speculate on other players' motives, and stir up trouble to keep others distracted. You MUST try to send at least 1-3 messages this turn to potential allies, distant powers, or targets you want to deceive. NEVER stay quiet early on.
 
