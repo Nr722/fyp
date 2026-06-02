@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # API_URL = os.getenv("API_URL", "http://localhost:8000")
-API_URL = "https://sunny-sparkle-backend.up.railway.app"
-# API_URL = "https://sunny-sparkle-dev.up.railway.app"
+# API_URL = "https://sunny-sparkle-backend.up.railway.app"
+API_URL = "https://sunny-sparkle-dev.up.railway.app"
 
 def get_headers():
     if 'token' in st.session_state and st.session_state.token:
