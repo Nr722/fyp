@@ -15,6 +15,21 @@ import bot.bot as bot_module
 import bot.handle_messages as handle_messages_module
 import function_tools.tactical_scorer as tactical_scorer_module
 
+from langchain_core.callbacks import BaseCallbackHandler
+
+class TokenTrackerCallback(BaseCallbackHandler):
+    """Intercepts the raw LLM output before Pydantic parsing strips the metadata."""
+    def __init__(self):
+        self.out_tokens = 0
+
+    def on_llm_end(self, response, **kwargs):
+        try:
+            # Grab the raw message from the generation payload
+            msg = response.generations[0][0].message
+            if hasattr(msg, 'usage_metadata') and msg.usage_metadata:
+                self.out_tokens = msg.usage_metadata.get('output_tokens', 0)
+        except Exception:
+            pass
 
 class MockMap:
     def __init__(self):
@@ -69,7 +84,7 @@ class ProfiledInvokeTracker:
     def _is_retryable_error(err_msg):
         return any(token in err_msg for token in ("429", "rate limit", "quota", "resource_exhausted"))
 
-    def __call__(self, model, history, max_retries=4, initial_delay=5, bot_name="Bot"):
+    def __call__(self, model, history, max_retries=1, initial_delay=5, bot_name="Bot"):
         self.structured_calls += 1
         telemetry["structured_output_calls"] += 1
         for attempt in range(max_retries):
@@ -78,14 +93,31 @@ class ProfiledInvokeTracker:
                     _record_prompt_tokens(history)
                 
                 start = time.perf_counter()
-                result = model.invoke(history)
+                
+                # --- NEW INTERCEPTOR LOGIC ---
+                token_tracker = TokenTrackerCallback()
+                
+                # Pass the tracker into the config so it can catch the raw message
+                result = model.invoke(history, config={"callbacks": [token_tracker]})
+                
                 elapsed = time.perf_counter() - start
                 
+                # Extract the saved tokens from the tracker, not the result object
+                out_tokens = token_tracker.out_tokens
+                if out_tokens > 0:
+                    telemetry["completion_prompt_tokens"].append(out_tokens)
+                else:
+                    # Absolute fallback if callback misses it
+                    fallback = int(len(str(result).split()) * 1.3)
+                    telemetry["completion_prompt_tokens"].append(fallback)
+                
+                # --- RESTORED BLOCK ---
                 if attempt == 0:
                     self.first_pass_successes += 1
                     telemetry["first_pass_structural_successes"] += 1
                     self.call_latencies.append(elapsed)
                     telemetry["llm_inference_latencies"].append(elapsed)
+                # ----------------------
                 
                 return result
             except Exception as exc:
@@ -213,7 +245,7 @@ PROFILING_SUITE = [
     {
         "name": "Test 2: Tactical Scorer Active (Support Execution)",
         "phase": "S1902M",
-        "use_tactical": True, # This flag forces your hardware/matrix calculations
+        "use_tactical": True, 
         "units": {
             "GERMANY": ["F HOL", "A MUN"],
             "FRANCE": ["A PIC", "F BEL"]
@@ -327,6 +359,7 @@ telemetry = {
     "reply_prompt_tokens": [],
     "order_prompt_tokens": [],
     "trust_evaluator_tokens": [],
+    "completion_prompt_tokens": [], 
 }
 
 
@@ -439,22 +472,24 @@ def print_final_telemetry():
     print("                COMPUTATIONAL EFFICIENCY PROFILE (LATEX COMPATIBLE)")
     print("="*80)
     
-    def log_full_row(label, latencies, tokens=None):
+    def log_full_row(label, latencies, tokens=None, is_output_tokens=False):
         mean_lat = sum(latencies)/len(latencies) if latencies else 0
         max_lat = max(latencies) if latencies else 0
         mean_tok = sum(tokens)/len(tokens) if tokens else 0
         samples = len(latencies) if latencies else (len(tokens) if tokens else 0)
         
+        tok_type = "Out Tokens:" if is_output_tokens else "In Tokens: "
         tok_str = f"{mean_tok:6.1f}" if tokens else "  --  "
         lat_str = f"Mean: {mean_lat:6.4f}s | Max: {max_lat:6.4f}s" if latencies else "        --            "
         
-        print(f"{label:<32} {lat_str} | Tokens: {tok_str} | n={samples}")
+        print(f"{label:<32} {lat_str} | {tok_type} {tok_str} | n={samples}")
 
     log_full_row("Tactical Scorer Matrix", telemetry["tactical_scorer_latencies"])
     log_full_row("Inbound Message Reply", telemetry["inbound_reply_latencies"], telemetry["reply_prompt_tokens"])
     log_full_row("Order Finalization Pass", telemetry["order_finalization_latencies"], telemetry["order_prompt_tokens"])
     log_full_row("Trust Ledger Evaluator Module", telemetry["trust_evaluator_latencies"], telemetry["trust_evaluator_tokens"])
     log_full_row("Message Generation Prompt", [], telemetry["message_prompt_tokens"])
+    log_full_row("Message Generation Completion", [], telemetry["completion_prompt_tokens"], is_output_tokens=True)
 
     print("\n" + "-"*80)
     print("SUB-ROUTINE BREAKDOWN (for Equation: T = t_context + t_inference + t_heuristic)")

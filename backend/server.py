@@ -443,7 +443,7 @@ if __name__ == "__main__":
     import uvicorn
     # Make sure 'uvicorn' is installed in your uv environment
     # 'server' refers to the filename server.py, 'app' is your FastAPI instance
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False)
 def run_bots_for_game(game_id: str, human_power: str):
     if game_id not in games:
         return
