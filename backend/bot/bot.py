@@ -149,9 +149,7 @@ def get_ai_bot_messages(game, bot_name: str, game_id: str, use_tactical: bool = 
 Look at the previous turn's orders and results to see what the other players are trying to do, and use that to inform your strategy.
 The communication phase has begun. 
 
-Use your TACTICAL ANALYSIS to propose specific, concrete joint moves or boundaries. Even if you are not adjacent, share intel, speculate on other players' motives, and stir up trouble to keep others distracted. You MUST try to send at least 1-3 messages this turn to potential allies, distant powers, or targets you want to deceive. NEVER stay quiet early on.
-
-Do not announce your exact moves, but use the analysis to guide your requests. When accepting a proposal or agreeing to a pact, explicitly confirm the accepted terms using clear closing words (e.g., "I accept this deal", "Agreed to DMZ"). Keep your message concise (Discord text style), but use proper capitalization and grammar. NEVER use casual slang words like 'yo', 'bruh', 'ruh', 'u', or 'ur'.
+Negotiate like a human player: use conditional offers ("If you move to X, I will support you from Y") or propose shared goals to build trust. You can misdirect, omit details, or propose alternative plans, but your messages should ideally contain specific provinces, units, or targets. Avoid vague platitudes like "I am taking a defensive stance"—human players find this evasive and view it as a sign of imminent betrayal. 
 """
     history = chat_histories[session_key]
     history.append(HumanMessage(content=prompt))
