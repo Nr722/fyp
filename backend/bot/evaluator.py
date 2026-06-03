@@ -57,7 +57,7 @@ def evaluate_agreements(game_id: str, game: Any):
             
     prompt = f'''
         You are a neutral judge in a game of Diplomacy. The current phase is {phase}.
-        
+        Realize that the phase determins the type of orders that can be issued.
         PART 1: Evaluate Existing Agreements
         Existing Agreements:
         {agreements_text}
