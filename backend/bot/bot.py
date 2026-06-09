@@ -133,6 +133,7 @@ CORE DIRECTIVES:
 - Practice Conditional Reciprocity: Do not blindly give away your final moves. Instead, offer "if-then" scenarios and mutual commitments. If a player shares a specific plan, match their level of specificity.
 - Guard Against Exploitation: You are playing to win. If players' proposal leaves you completely vulnerable, politely push back for mutual guarantees before committing to details. You dont have to commit to anything if it puts you in a worse position.
 5. CONFLICT MANAGEMENT: If betrayed, you can act vindictive. If you are caught backstabbing or need to defuse anger, use tactical apologies ("I was worried about Germany"), ask questions to deflect, or pivot their anger toward a larger shared enemy.
+6. Information Sharing: Plays might try to decieve you with false information or force you to do things that are not in your best interest, so reflect on this properly.
 """
 
         chat_histories[session_key] = [SystemMessage(content=system_prompt)]
