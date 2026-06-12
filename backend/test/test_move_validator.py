@@ -87,3 +87,78 @@ def test_convoy_mismatch():
     assert len(errors) == 1
     assert "Coordination mismatch" in errors[0]
     assert "attempts to convoy, but the target army is doing" in errors[0]
+
+def test_hallucinated_location_in_move():
+    """
+    FAULT INJECTION: Test system resilience against non-existent board locations.
+    LLM hallucinates a location 'XYZ' that doesn't exist on the board.
+    """
+    orders = [
+        "A PAR - XYZ",  # XYZ is not a valid location
+        "F BRE H"
+    ]
+    errors = check_internal_consistency(orders)
+    # The validator should catch or gracefully handle this
+    # (It may not error immediately, but should not crash)
+    assert isinstance(errors, list)
+
+def test_hallucinated_support_destination():
+    """
+    FAULT INJECTION: Test support order with non-existent destination.
+    """
+    orders = [
+        "A PAR S A MAR - XYZ",  # XYZ doesn't exist
+        "A MAR - XYZ"
+    ]
+    errors = check_internal_consistency(orders)
+    # Should handle gracefully
+    assert isinstance(errors, list)
+
+def test_malformed_order_missing_unit_type():
+    """
+    FAULT INJECTION: Test order missing unit type prefix (A or F).
+    This would come from Pydantic validation failure in LLM output.
+    """
+    orders = [
+        "PAR - BUR",  # Missing unit type prefix
+        "F BRE H"
+    ]
+    errors = check_internal_consistency(orders)
+    # Should not crash, may produce error or skip malformed order
+    assert isinstance(errors, list)
+
+def test_malformed_order_empty_string():
+    """
+    FAULT INJECTION: Test empty order string.
+    """
+    orders = [
+        "",  # Empty string
+        "A PAR - BUR"
+    ]
+    errors = check_internal_consistency(orders)
+    # Should handle gracefully
+    assert isinstance(errors, list)
+
+def test_malformed_order_broken_syntax():
+    """
+    FAULT INJECTION: Test syntactically broken order.
+    """
+    orders = [
+        "A PAR - - BUR",  # Double dash
+        "F BRE H"
+    ]
+    errors = check_internal_consistency(orders)
+    # Should not crash
+    assert isinstance(errors, list)
+
+def test_hallucinated_convoy_location():
+    """
+    FAULT INJECTION: Test convoy with non-existent fleet location.
+    """
+    orders = [
+        "F INVALID C A LON - BRE",  # INVALID is not a real location
+        "A LON - BRE VIA"
+    ]
+    errors = check_internal_consistency(orders)
+    # Should gracefully handle
+    assert isinstance(errors, list)

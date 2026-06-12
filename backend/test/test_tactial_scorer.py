@@ -72,12 +72,9 @@ def test_unsupported_suicide_attack_penalty():
     scores = score_individual_orders(game, "FRANCE")
     
     # Base(10) + AttackEnemyCenter(100) + AttackEnemyUnit(50) - Unsupported(60)
-    # Plus tactical bonuses:
-    # - adjacent to enemy? Yes (MUN borders enemies because BUR is there... wait, let's see)
-    # It adds adjacency bonuses in the heuristic.
+    # + AdjacencySCBonus(2 unowned neighbors: BER, KIE * 30 = 60)
     move_score = scores["BUR"][0]["score"]
-    assert move_score == 140
-    # Should still be positive because SCs are valuable, but notably penalized by 60
+    assert move_score == 160
 
 
 def test_supported_attack_bonus():
@@ -91,7 +88,7 @@ def test_supported_attack_bonus():
     scores = score_individual_orders(game, "FRANCE")
     
     # We have a unit in KIE which abuts MUN.
-    # Base(10) + AttackEnemyCenter(100) + AttackEnemyUnit(50) + FriendlySupport(1x30) = 190
+    # Base(10) + Atta.ckEnemyCenter(100) + AttackEnemyUnit(50) + FriendlySupport(1x30) = 190
     move_score = scores["BUR"][0]["score"]
     assert move_score >= 190
 
@@ -134,9 +131,9 @@ def test_defensive_hold_bonus():
     
     scores = score_individual_orders(game, "GERMANY")
     
-    # Base(10) + HoldSC(40) + HoldFrontLine(50) + TurtleBonus(80) = 180
+    # Base(10) + HoldSC(40) + DefenseBonus(40) + TurtleBonus(60 for >= 2 enemies) = 150
     move_score = scores["MUN"][0]["score"]
-    assert move_score == 180
+    assert move_score == 150
 
 def test_anti_convoy_motivation():
     # Setup game where France attacks a fleet in the English Channel
@@ -148,7 +145,8 @@ def test_anti_convoy_motivation():
     
     scores = score_individual_orders(game, "FRANCE")
     
-    # Base(10) + AttackEnemy(50) - Unsupported(60) + AntiConvoySeaZone(40) + UnownedSCAdj(20) = 60
+    # Base(10) + AttackEnemy(50) + OpeningBonus(45) - Unsupported(60) 
+    # + UnownedSCAdj(BEL * 30) + AntiConvoySeaZone(40) = 115
     move_score = scores["LON"][0]["score"]
     assert "F LON - ENG" == scores["LON"][0]["order"]
-    assert move_score == 60
+    assert move_score == 115

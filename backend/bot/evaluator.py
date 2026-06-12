@@ -2,9 +2,11 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from bot.bot import invoke_with_retry, get_model
 from langchain_core.messages import HumanMessage
+from function_tools.db import get_pending_agreements, update_agreement_status, add_agreement, get_connection
 import json
 import os
 import re
+
 
 class AgreementEvaluation(BaseModel):
     agreement_id: int = Field(description="The ID of the agreement being evaluated.")
@@ -32,7 +34,6 @@ def evaluate_agreements(game_id: str, game: Any):
     
     pending_agreements = get_pending_agreements(game_id)
     
-    # Gather orders for the current phase across all powers
     all_orders = []
     for power in game.powers:
         orders = game.get_orders(power)
@@ -46,8 +47,9 @@ def evaluate_agreements(game_id: str, game: Any):
     phase = phase_str.name if hasattr(phase_str, "name") else str(phase_str)
     orders_text = "\n".join(all_orders)
     
-    # We use Gemini for the complex joint task
     model = get_model()
+    # Bind structured output BEFORE passing to the retry handler
+    structured_model = model.with_structured_output(JointEvaluationResponse)
     
     agreements_text = "NONE"
     if pending_agreements:
@@ -69,9 +71,10 @@ def evaluate_agreements(game_id: str, game: Any):
         {json.dumps(JointEvaluationResponse.model_json_schema())}
         '''    
     try:
-        response = model.with_structured_output(JointEvaluationResponse).invoke([HumanMessage(content=prompt)])
+        # Use invoke_with_retry for stability and telemetry interception
+        response = invoke_with_retry(structured_model, [HumanMessage(content=prompt)], max_retries=3)
+        print(f"[Judge] LLM Response Parsed Successfully.")
         
-        # 1. Process Evaluations
         for eval_data in response.evaluations:
             if eval_data.could_judge and eval_data.score is not None:
                 update_agreement_status(eval_data.agreement_id, eval_data.score)
@@ -79,14 +82,11 @@ def evaluate_agreements(game_id: str, game: Any):
             else:
                 print(f"[Judge] Agreement {eval_data.agreement_id} could not be judged yet ({eval_data.reasoning})")
         
-        # 2. Process Map Betrayals (Unrecorded agreements)
         for b in response.betrayals:
             if b.is_betrayal:
                 desc = f"[MAP BETRAYAL] {b.description}"
-                # Log it as a new agreement that is already broken
                 add_agreement(game_id, b.victim, b.betrayer, desc, phase)
                 
-                # Update the score immediately
                 conn = get_connection()
                 try:
                     with conn.cursor() as cur:
@@ -100,8 +100,3 @@ def evaluate_agreements(game_id: str, game: Any):
                 print(f"[Judge] Logged Map Betrayal: {b.betrayer} stabbed {b.victim}")
     except Exception as e:
         print(f"Failed to evaluate turn: {e}")
-
-if __name__ == "__main__":
-    from dotenv import load_dotenv
-    load_dotenv()
-    print("Combined evaluator script available.")

@@ -5,16 +5,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from diplomacy.engine.game import Game
 from function_tools.db import init_db
 from bot.bot import get_bot_messages, get_bot_orders, finalize_ai_bot_orders
+from bot.vanilla_bot import get_vanilla_bot_messages, finalize_vanilla_bot_orders
 from bot.handle_messages import handle_incoming_message
 from bot.evaluator import evaluate_agreements
 import json
 import time
 
-# Define the split: 4 with tactical, 3 without
-TACTICAL_POWERS = ["ENGLAND", "FRANCE", "GERMANY", "ITALY"]
-BASELINE_POWERS = ["AUSTRIA", "RUSSIA", "TURKEY"]
 
-def run_simulation(game_name, max_phases=15):
+def run_simulation(game_name, TACTICAL_POWERS, BASELINE_POWERS, max_phases=15, vanilla=False):
     print(f"Starting simulation: {game_name}")
     init_db()
     game = Game()
@@ -38,8 +36,11 @@ def run_simulation(game_name, max_phases=15):
             print(f"{sender} is initiating messages...")
             has_tactical = sender in TACTICAL_POWERS
             
-            # Pass use_tactical flag
-            out_msgs = get_bot_messages(game, sender, bot_type="ai", game_id=game_id, use_tactical=has_tactical)
+            # Use vanilla bot for baseline powers if vanilla mode, otherwise use standard bot
+            if vanilla and sender in BASELINE_POWERS:
+                out_msgs = get_vanilla_bot_messages(game, sender, game_id=game_id)
+            else:
+                out_msgs = get_bot_messages(game, sender, bot_type="ai", game_id=game_id, use_tactical=has_tactical)
             
             for msg_obj in out_msgs:
                 recipient = msg_obj["recipient"]
@@ -72,7 +73,11 @@ def run_simulation(game_name, max_phases=15):
         for power in powers:
             if not game.powers[power].is_eliminated():
                 has_tactical = power in TACTICAL_POWERS
-                orders = finalize_ai_bot_orders(game, power, game_id, use_tactical=has_tactical)
+                # Use vanilla bot for baseline powers if vanilla mode, otherwise use standard bot
+                if vanilla and power in BASELINE_POWERS:
+                    orders = finalize_vanilla_bot_orders(game, power, game_id)
+                else:
+                    orders = finalize_ai_bot_orders(game, power, game_id, use_tactical=has_tactical)
                 phase_orders[power] = orders
                 game.set_orders(power, orders)
                 print(f"{power} final orders: {orders}")
@@ -106,5 +111,17 @@ def run_simulation(game_name, max_phases=15):
 
 if __name__ == "__main__":
     import uuid
-    run_simulation(f"sim_{uuid.uuid4().hex[:8]}")
+    TACTICAL_POWERS = ["AUSTRIA", "RUSSIA", "TURKEY", "ITALY"]
+    BASELINE_POWERS = ["ENGLAND", "FRANCE", "GERMANY"]
+    run_simulation(f"org_vanilla_sim_{uuid.uuid4().hex[:8]}", TACTICAL_POWERS=TACTICAL_POWERS, BASELINE_POWERS=BASELINE_POWERS, max_phases=15, vanilla=True,)
+    run_simulation(f"org_vanilla_sim_{uuid.uuid4().hex[:8]}", TACTICAL_POWERS=TACTICAL_POWERS, BASELINE_POWERS=BASELINE_POWERS, max_phases=15, vanilla=True,)
+    run_simulation(f"org_vanilla_sim_{uuid.uuid4().hex[:8]}", TACTICAL_POWERS=TACTICAL_POWERS, BASELINE_POWERS=BASELINE_POWERS, max_phases=15, vanilla=True,)
+
+    run_simulation(f"flip_vanilla_sim_{uuid.uuid4().hex[:8]}", TACTICAL_POWERS=BASELINE_POWERS, BASELINE_POWERS=TACTICAL_POWERS, max_phases=15, vanilla=True,)
+    run_simulation(f"flip_vanilla_sim_{uuid.uuid4().hex[:8]}", TACTICAL_POWERS=BASELINE_POWERS, BASELINE_POWERS=TACTICAL_POWERS, max_phases=15, vanilla=True,)
+    run_simulation(f"flip_vanilla_sim_{uuid.uuid4().hex[:8]}", TACTICAL_POWERS=BASELINE_POWERS, BASELINE_POWERS=TACTICAL_POWERS, max_phases=15, vanilla=True,)
+        
+    run_simulation(f"v2sim_{uuid.uuid4().hex[:8]}", max_phases=15, vanilla=False, TACTICAL_POWERS=TACTICAL_POWERS, BASELINE_POWERS=BASELINE_POWERS)
+    
+    run_simulation(f"v2sim_{uuid.uuid4().hex[:8]}", max_phases=15, vanilla=False, TACTICAL_POWERS=TACTICAL_POWERS, BASELINE_POWERS=BASELINE_POWERS)
     

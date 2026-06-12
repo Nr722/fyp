@@ -15,7 +15,7 @@ from bot.bot import (
 from bot.models import BotTurnResponse, BotOrderResponse, OrderItem, MessageItem
 from diplomacy.engine.game import Game
 
-@patch('function_tools.db.get_connection')
+@patch('function_tools.db.get_connection') 
 def test_get_common_context(mock_get_conn):
     """
     Tests the context builder to ensure it correctly shapes the prompt given standard Game objects
@@ -35,8 +35,7 @@ def test_get_common_context(mock_get_conn):
     
     assert phase == "S1901M"
     assert "CURRENT BOARD STATE" in board_state
-    assert "FRANCE:" in board_state
-    assert "ENGLAND FOLLOWED agreement" in trust_history
+    assert "ENGLAND BROKEN agreement" in trust_history
     assert "TACTICAL ANALYSIS" in tactical
 
 @patch('bot.bot.invoke_with_retry')

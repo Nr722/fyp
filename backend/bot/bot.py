@@ -17,9 +17,13 @@ from function_tools.tactical_scorer import score_individual_orders
 load_dotenv()
 
 chat_histories = {}
-
+# model_name = "models/gemini-3.1-flash-lite"
 def get_model(model_name="models/gemini-3.1-flash-lite"):
-    return ChatGoogleGenerativeAI(model=model_name, google_api_key=os.getenv("GEMINI_API_KEY"))
+
+    return ChatGoogleGenerativeAI(
+        model=model_name, 
+        google_api_key=os.getenv("GEMINI_API_KEY")
+    )
     
 def invoke_with_retry(model, history, max_retries=4, initial_delay=5, bot_name="Bot"):
     for attempt in range(max_retries):
@@ -27,7 +31,14 @@ def invoke_with_retry(model, history, max_retries=4, initial_delay=5, bot_name="
             return model.invoke(history)
         except Exception as e:
             err_msg = str(e).lower()
-            if "429" in err_msg or "rate limit" in err_msg or "quota" in err_msg or "resource_exhausted" in err_msg:
+            if "500" in err_msg or "internal server error" in err_msg:
+                # Catching structural server errors commonly thrown by 31b endpoints
+                if attempt < max_retries - 1:
+                    delay = initial_delay * (2 ** attempt)
+                    print(f"DEBUG_SERVER_ERROR|{bot_name}|Retrying due to API 500 error in {delay}s...|Attempt {attempt + 1}")
+                    time.sleep(delay)
+                    continue
+            elif "429" in err_msg or "rate limit" in err_msg or "quota" in err_msg or "resource_exhausted" in err_msg:
                 if attempt < max_retries - 1:
                     delay = initial_delay * (2 ** attempt)
                     match = re.search(r'retry in ([0-9.]+)s', err_msg)
@@ -85,7 +96,6 @@ def _get_common_context(game, bot_name, game_id, include_tactical=False):
                 active_text = ""
                 for row in cur.fetchall():
                     if row[2] is not None:
-                        # Since score is out of 100, let's treat anything >= 50 as followed, else broken
                         status = "FOLLOWED" if int(row[2]) >= 50 else "BROKEN"
                         past_text += f"- {row[0]} {status} agreement from {row[3]}: '{row[1]}'\n"
                     else:
@@ -124,16 +134,17 @@ def _init_bot_history(bot_name, session_key):
 </STRATEGY_AND_GOALS>
 
 CORE DIRECTIVES:
-1. TONE & PERSONA: Act like a mature, friendly human Diplomacy player. Use concise, natural language (1-2 sentences per message).
+1. TONE & PERSONA: Act like a mature, friendly human Diplomacy player. Use short, concise, natural language, similar to Discord messaging.
 2. TRANSACTIONAL DIPLOMACY: Always seek a quid pro quo. Propose strategic DMZs to secure flanks and offer conditional support ("I'll support X if you hold Y"). Only accept deals that actively advance your expansion or build trust without hurting your position or goals.
-3. TRUST & GOSSIP: Trust is a weapon. Build broad partnerships by sharing specific (or plausibly fake) moves and bartering third-party intel. Reach out to non-adjacent players to build leverage. 
-4. DECEPTION (THE STAB): Never threaten. Be friendly until the knife goes in. If invading, propose fake DMZs or ask for fake support to misdirect them. Only lie if it aligns logically with the board state—dumb lies destroy your utility.
-5. Orders & Strategic Negotiation:
+3. Engagement: You must engage in the messaging phase to win (could be board related, or even just wishing luck or advising them on moves). Use it to build alliances, share intel, and misdirect. If you have tactical insights, share them selectively to build credibility and influence others. If you are in a strong position, you can afford to be more secretive; if you are in a weak position, you should be more active in sharing and proposing deals to stay relevant.
+4. TRUST & GOSSIP: Trust is a weapon. Build broad partnerships by sharing specific (or plausibly fake) moves and bartering third-party intel. Reach out to non-adjacent players to build leverage. 
+5. DECEPTION (THE STAB): Never threaten. Be friendly until the knife goes in. If invading, propose fake DMZs or ask for fake support to misdirect them. Only lie if it aligns logically with the board state—dumb lies destroy your utility.
+6. Orders & Strategic Negotiation:
 - You must converse with specifics. To win, you need active allies, which requires sharing concrete proposals and sometimes your moves if they dont leave you vulnerable.
-- Practice Conditional Reciprocity: Do not blindly give away your final moves. Instead, offer "if-then" scenarios and mutual commitments. If a player shares a specific plan, match their level of specificity.
+- Practice Conditional Reciprocity: Do not blindly give away your final moves. See the trust you have, and how vulnerable sharing your moves makes you. If a player shares a specific plan, match their level of specificity.
 - Guard Against Exploitation: You are playing to win. If players' proposal leaves you completely vulnerable, politely push back for mutual guarantees before committing to details. You dont have to commit to anything if it puts you in a worse position.
-5. CONFLICT MANAGEMENT: If betrayed, you can act vindictive. If you are caught backstabbing or need to defuse anger, use tactical apologies ("I was worried about Germany"), ask questions to deflect, or pivot their anger toward a larger shared enemy.
-6. Information Sharing: Plays might try to decieve you with false information or force you to do things that are not in your best interest, so reflect on this properly.
+7. CONFLICT MANAGEMENT: If betrayed, you can act vindictive. If you are caught backstabbing or need to defuse anger, use tactical apologies ("I was worried about Germany"), ask questions to deflect, or pivot their anger toward a larger shared enemy.
+8. Information Sharing: Plays might try to decieve you with false information or force you to do things that are not in your best interest, so reflect on this properly.
 """
 
         chat_histories[session_key] = [SystemMessage(content=system_prompt)]
@@ -157,7 +168,10 @@ Negotiate like a human player: use conditional offers, propose shared goals, or 
     history.append(HumanMessage(content=prompt))
     
     try:
-        response = invoke_with_retry(get_model().with_structured_output(BotTurnResponse), history, bot_name=bot_name)
+        # Changed execution method to 'json_schema' to prevent system prompt pollution 
+        model = get_model().with_structured_output(BotTurnResponse, method="json_schema")
+        response = invoke_with_retry(model, history, bot_name=bot_name)
+        
         print(f"[{bot_name} Message Strategy]: {response.reasoning}")
         history.append(AIMessage(content=response.model_dump_json()))
         return [{"recipient": m.recipient, "message": m.message} for m in (response.messages or []) if m.recipient and m.message]
@@ -168,7 +182,7 @@ Negotiate like a human player: use conditional offers, propose shared goals, or 
 def finalize_ai_bot_orders(game, bot_name: str, game_id: str, use_tactical: bool = True):
     valid_orders = {loc: game.get_all_possible_orders().get(loc, []) for loc in game.get_orderable_locations(bot_name)}
     if not valid_orders: return []
-
+    t0 = time.time()
     phase, board_state_text, prev_turn_text, trust_history_text, tactical_context = _get_common_context(game, bot_name, game_id, include_tactical=use_tactical)
     session_key = f"{game_id}_{bot_name}"
     _init_bot_history(bot_name, session_key)
@@ -183,28 +197,37 @@ Available Locations and Valid Options:
 """
     history = chat_histories[session_key]
     history.append(HumanMessage(content=prompt))
-    model = get_model().with_structured_output(BotOrderResponse)
     
+    # Using 'json_schema' constraint prevents Gemini tool errors
+    model = get_model().with_structured_output(BotOrderResponse, method="json_schema")
+    
+    # Isolate the retry block into a working_history so runtime errors don't corrupt the long term session
+    working_history = list(history)
+    t1 = time.time()
     for _ in range(3):
         try:
-            data = invoke_with_retry(model, history, bot_name=bot_name)
+            data = invoke_with_retry(model, working_history, bot_name=bot_name)
             print(f"[{bot_name} Final Order Strategy]: {data.reasoning}")
             temp_orders = [o.order for o in data.orders if o.order]
             errs = check_internal_consistency(temp_orders)
             
             for item in data.orders:
-                if item.location not in valid_orders: errs.append(f"Invalid location {item.location}")
-                elif item.order not in valid_orders.get(item.location, []): errs.append(f"Invalid order '{item.order}' for {item.location}")
+                if item.location not in valid_orders: 
+                    errs.append(f"Invalid location {item.location}")
+                elif item.order not in valid_orders.get(item.location, []): 
+                    errs.append(f"Invalid order '{item.order}' for {item.location}")
             
             if errs:
-                history.append(AIMessage(content=data.model_dump_json()))
-                history.append(HumanMessage(content=f"Fix these errors:\n{' '.join(errs)}"))
+                working_history.append(AIMessage(content=data.model_dump_json()))
+                working_history.append(HumanMessage(content=f"Fix these errors:\n{' '.join(errs)}"))
                 continue
-                
+            print(f"[TIMING] {bot_name} model call: {time.time()-t1:.1f}s")    
+            # If everything passes, sync back to the main history context once
             history.append(AIMessage(content=data.model_dump_json()))
             return [o.order if o.order in valid_orders.get(o.location, []) else valid_orders[o.location][0] for o in data.orders]
         except Exception as e:
             continue
+            
     return get_random_bot_orders(game, bot_name)[0]
 
 def get_bot_messages(game, bot_name, bot_type="random", game_id=None, use_tactical=True):

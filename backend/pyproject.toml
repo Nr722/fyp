@@ -1,5 +1,5 @@
 [project]
-name = "my-ai-project"
+name = "backend"
 version = "0.1.0"
 description = "AI agent and web service project"
 requires-python = ">=3.10"
@@ -24,6 +24,7 @@ dependencies = [
     "psycopg2-binary",
     "st-click-detector",
     "cairosvg",
+    "pytest-cov",
 ]
 
 [dependency-groups]
