@@ -1,0 +1,3229 @@
+[
+  {
+    "phase": "S1901M",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "I'd like to propose a DMZ in the English Channel for this spring. Keeping it neutral would allow us both to focus our initial efforts elsewhere.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "That sounds like a sensible opening, England. I agree to a DMZ in the English Channel for the Spring. Let's keep things stable in the north while we both get our feet under us.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "I'm heading into the North Sea to secure Norway. If you move toward Denmark or Sweden, I'm happy to coordinate so we don't trip over each other in the north.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "Sounds like a solid plan. I'm eyeing Denmark to secure my northern flank. If you stick to Norway and the North Sea, I'll steer clear of your operations there. Let's keep the North clear of any misunderstandings.",
+        "type": "reply"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ITALY",
+        "message": "I have no desire to conflict with you in Piedmont this early. If you keep out of PIE, I will respect your borders in the Mediterranean.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "FRANCE",
+        "message": "That sounds like a great plan. I have no intention of moving into Piedmont and would be happy to maintain a firm DMZ there. Let's keep our borders quiet and focus on other fronts for now.",
+        "type": "reply"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "GERMANY",
+        "message": "I am looking for stability in the center. Would you be open to a mutual non-aggression pact regarding Burgundy?",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "FRANCE",
+        "message": "That sounds like a sensible way to keep the peace. I agree to a DMZ in Burgundy\u2014let's keep our forces away from that border so we can focus on our other neighbors.",
+        "type": "reply"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "RUSSIA",
+        "message": "I'm looking to keep the Baltic quiet. If you stay out of Silesia, I'm happy to see our interests remain separate for now.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "GERMANY",
+        "message": "That sounds like a sensible arrangement. I have no intention of moving into Silesia this year; let's keep our borders stable while we both find our footing.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "AUSTRIA",
+        "message": "Hey, I have no desire to attack you early on. Would you be open to a DMZ in the Adriatic and an agreement that we don't move into each other's home centers?",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "ITALY",
+        "message": "Hey! That sounds like a great plan. I agree\u2014let's keep the Adriatic DMZ'd and leave each other's home centers alone. It's much better for both of us if we focus elsewhere early on. Good luck with your opening moves!",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Hey! How are you looking at the Balkans and the Black Sea? I'm open to discussing how we can coordinate our moves to keep Turkey in check.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I am definitely interested in that. Turkey's proximity is always a concern. What are you thinking in terms of specific coordination? I want to ensure we aren't just opening doors for Italy while we focus on the East.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "If we move against Turkey, I need your guarantee that Galicia remains demilitarized. If you can support my position in the Black Sea or coordinate moves into the Balkans, I'm fully onboard with neutralizing Ankara.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "That sounds like a solid deal. I'm happy to keep Galicia demilitarized to focus our efforts on Turkey. Let's make sure our moves in the Balkans are well-coordinated to maximize our gain.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "RUSSIA",
+        "message": "Let's keep the Black Sea neutral and focus on our respective neighbors; I am happy to support you against Austria if we coordinate.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "TURKEY",
+        "message": "A Black Sea neutral zone sounds interesting. Let me weigh that against my current options in the Balkans; I'll get back to you once I've finalized my opening plans.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "AUSTRIA",
+        "message": "I'm looking to expand toward the Balkans, but I have no interest in conflict with you if we can find a way to partition the area.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "TURKEY",
+        "message": "That is an interesting proposition. I am definitely open to discussing how we can divide the Balkans to avoid unnecessary friction. What specifically did you have in mind for the division?",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I'd like to propose a DMZ in the Ionian Sea to ensure we don't trip over each other while we both look North.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "That's an interesting thought, but the Ionian is a bit too central for me to commit to a formal DMZ this early. Let's see how the board develops before locking ourselves into specific naval zones.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [
+        "F EDI - NTH",
+        "F LON - ENG",
+        "A LVP - YOR"
+      ],
+      "FRANCE": [
+        "F BRE - MAO",
+        "A MAR - SPA",
+        "A PAR - BUR"
+      ],
+      "GERMANY": [
+        "A BER - SIL",
+        "F KIE - DEN",
+        "A MUN - RUH"
+      ],
+      "ITALY": [
+        "F NAP - ION",
+        "A ROM - APU",
+        "A VEN - TYR"
+      ],
+      "AUSTRIA": [
+        "A BUD - SER",
+        "F TRI - ALB",
+        "A VIE H"
+      ],
+      "RUSSIA": [
+        "A MOS - UKR",
+        "F SEV - BLA",
+        "F STP/SC - FIN",
+        "A WAR - GAL"
+      ],
+      "TURKEY": [
+        "F ANK - BLA",
+        "A CON - BUL",
+        "A SMY - CON"
+      ]
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "A SER",
+          "F ALB"
+        ],
+        "ENGLAND": [
+          "F NTH",
+          "F ENG",
+          "A YOR"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A SPA",
+          "A BUR"
+        ],
+        "GERMANY": [
+          "F DEN",
+          "A SIL",
+          "A RUH"
+        ],
+        "ITALY": [
+          "F ION",
+          "A APU",
+          "A TYR"
+        ],
+        "RUSSIA": [
+          "F SEV",
+          "A GAL",
+          "A UKR",
+          "F FIN"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A BUL",
+          "A CON"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "MUN"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "F1901M",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "I'm going to take Belgium this turn to secure my position. Since you're heading toward Spain, I'm happy to keep the Channel quiet for now.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "Understood. Good luck with the move into Belgium; I'll focus on securing the Iberian centers. Let's keep the Channel as a DMZ as agreed.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "I'm moving on Belgium to shore up my borders. Let's keep our focus on our own expansion so we don't interfere with each other's progress.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "That's fair. I'm moving on Holland to secure my own flank as discussed. Let's make sure our fleets and armies don't clash; good luck with the capture.",
+        "type": "reply"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "GERMANY",
+        "message": "I'm keeping my forces in Burgundy for now, but I'd prefer if we could coordinate our movements to ensure neither of us gets boxed in. What's your outlook on the Rhine?",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "FRANCE",
+        "message": "I'm focusing my efforts on Holland to secure my northern position. I have no intent to cause trouble on the Rhine and remain committed to our Burgundy DMZ.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "AUSTRIA",
+        "message": "It looks like the board is getting crowded. I intend to respect our borders, but I need to expand to keep up with the others. Are you comfortable with me taking Tunis to secure my Southern flank?",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "ITALY",
+        "message": "That sounds like a great move for you, and it doesn't conflict with our agreement at all. Tunis is a solid acquisition; go for it! I'm happy to keep our DMZ and focus on our respective fronts.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "FRANCE",
+        "message": "Hope you're doing well. Still sticking to our Piedmont DMZ, so no worries there. Let's keep working toward a quiet border.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ITALY",
+        "message": "Thanks for the note, Italy. I'm happy to maintain our Piedmont DMZ and look forward to continued stability on that front.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Looks like the Black Sea is getting interesting. I'm moving toward Greece; let's keep the pressure on the Turks.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "Agreed, the Turks are making their intentions known. I will continue to hold the line in the East to keep them occupied while you secure the Adriatic.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "TURKEY",
+        "message": "It seems our interests in the Black Sea are colliding. If you are serious about neutrality, let's discuss a formal partition of the area.",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "RUSSIA",
+        "message": "Let's agree to keep the Black Sea as a permanent DMZ so we can focus our units on expansion elsewhere; I'm happy to support your efforts against Austria if you stop attempting to enter the Black Sea.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I am pushing my fleet into the Black Sea to secure our interests. If you can support me from Serbia or Albania, we can effectively neutralize their naval presence.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "I'm on board. I will support your move into the Black Sea from my positions in the Balkans to help clear that area.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "AUSTRIA",
+        "message": "I'm content with our current borders if you focus your attention on Italy; let's keep the Adriatic clear of trouble for now.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "TURKEY",
+        "message": "It's an interesting idea, though I'm currently focused on stabilizing my own borders. I appreciate the sentiment about the Adriatic; I'll keep that in mind as I look at my options.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "Austria is looking aggressive in the East. If you decide to push into the Adriatic, I would be open to discussing how we can divide the spoils.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "I agree that Austria is looking a bit too strong. I'm definitely keeping an eye on the Adriatic\u2014let's keep talking about how we can coordinate our moves to keep them in check.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [
+        "F ENG S F NTH - BEL",
+        "F NTH - BEL",
+        "A YOR - BEL VIA"
+      ],
+      "FRANCE": [
+        "A BUR H",
+        "F MAO H",
+        "A SPA - POR"
+      ],
+      "GERMANY": [
+        "F DEN - SWE",
+        "A RUH - HOL",
+        "A SIL H"
+      ],
+      "ITALY": [
+        "A APU - NAP VIA",
+        "F ION - ALB",
+        "A TYR S A BUR - MUN"
+      ],
+      "AUSTRIA": [
+        "F ALB - GRE",
+        "A SER H",
+        "A VIE H"
+      ],
+      "RUSSIA": [
+        "F FIN - SWE",
+        "A GAL S A UKR - RUM",
+        "F SEV S A UKR - RUM",
+        "A UKR - RUM"
+      ],
+      "TURKEY": [
+        "F ANK H",
+        "A BUL H",
+        "A CON H"
+      ]
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "A SER",
+          "F GRE"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A BUR",
+          "A POR"
+        ],
+        "GERMANY": [
+          "F DEN",
+          "A SIL",
+          "A HOL"
+        ],
+        "ITALY": [
+          "A TYR",
+          "F ALB",
+          "A NAP"
+        ],
+        "RUSSIA": [
+          "F SEV",
+          "A GAL",
+          "F FIN",
+          "A RUM"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A BUL",
+          "A CON"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP",
+          "BEL"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "MUN",
+          "DEN",
+          "HOL"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY",
+          "BUL"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "W1901A",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "Belgium is now mine, but I'm happy to maintain our border as is for now. Let's focus our efforts elsewhere so we don't hinder each other's progress.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "Agreed. I'm happy to keep the current border in place and focus our attention elsewhere. Let's keep our growth efficient.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "I've expanded into Belgium to secure my position. I intend to keep the English Channel as a DMZ and hope you feel the same regarding our shared border.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "Congratulations on securing Belgium. I agree to maintain the English Channel as a DMZ and respect our shared borders as we look toward the next year.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "FRANCE",
+        "message": "Things are heating up quickly on the board. I'm reaffirming my commitment to our Piedmont DMZ; let's keep that border quiet while we both navigate these shifting alliances.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ITALY",
+        "message": "I agree, Italy. The board is moving quickly, and I am happy to maintain the Piedmont DMZ to ensure we both have a secure flank.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Great success in the Balkans. Are you planning to build in Sevastopol? I'm looking forward to our continued coordination against the Turks.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "It was a great move indeed. I am planning to build in Sevastopol to bolster my fleet presence there; let's keep the pressure on them.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "RUSSIA",
+        "message": "Congratulations on taking Romania. I'm pleased we've held the Black Sea DMZ, and I look forward to working together to balance against Austrian influence.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "TURKEY",
+        "message": "It is true that the balance of power is shifting quickly in the Balkans. I am evaluating my position carefully to ensure that no single power dominates the region.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "It seems Austria has expanded quickly. If you need help containing them, let me know; I'm prepared to move my fleet to the Aegean to support regional stability.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Austria is indeed looking a bit too strong for comfort. I am open to coordinating with you to keep them in check; let's stay in close contact on our moves into the Adriatic and Aegean.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [
+        "F LON B"
+      ],
+      "FRANCE": [
+        "A PAR B"
+      ],
+      "GERMANY": [
+        "A MUN B",
+        "F KIE B"
+      ],
+      "ITALY": [],
+      "AUSTRIA": [
+        "A BUD B",
+        "A TRI B"
+      ],
+      "RUSSIA": [
+        "A WAR B"
+      ],
+      "TURKEY": [
+        "F SMY B"
+      ]
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "A SER",
+          "F GRE",
+          "A BUD",
+          "A TRI"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL",
+          "F LON"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A BUR",
+          "A POR",
+          "A PAR"
+        ],
+        "GERMANY": [
+          "F DEN",
+          "A SIL",
+          "A HOL",
+          "A MUN",
+          "F KIE"
+        ],
+        "ITALY": [
+          "A TYR",
+          "F ALB",
+          "A NAP"
+        ],
+        "RUSSIA": [
+          "F SEV",
+          "A GAL",
+          "F FIN",
+          "A RUM",
+          "A WAR"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A BUL",
+          "A CON",
+          "F SMY"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP",
+          "BEL"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "MUN",
+          "DEN",
+          "HOL"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY",
+          "BUL"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "S1902M",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "I'm focusing my fleets north to address some recent movements there. Let's keep our non-aggression pact in the Channel for this turn.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "Understood, England. I agree to keep our non-aggression pact and the Channel DMZ in effect for this turn. Good luck with your northern operations.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "I see you've bolstered your units in the east. I'm keeping my position in the North Sea defensive and hope you'll avoid moving toward Belgium.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "I understand your concern, and I have no interest in challenging you in Belgium. My recent builds are purely for my eastern flank against Russian pressure. Let's keep our arrangement intact.",
+        "type": "reply"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "GERMANY",
+        "message": "I'm looking to keep the center stable, but I need to expand my reach. Let's make sure our border in the Rhineland doesn't become a point of contention.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "FRANCE",
+        "message": "I agree that stability is key. I have no intentions for the Rhineland and remain fully committed to our mutual non-aggression and the Burgundy DMZ. Let's keep that border quiet.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Austria is clearly the runaway leader now. I am moving to attack Trieste; if you can exert pressure on their southern flank, we can break them.",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I agree completely. I will move to pressure Austria's holdings in the Balkans to coincide with your strike on Trieste.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "The expansion is going well. Shall we coordinate a push into Bulgaria? I can move into the region to support your continued naval dominance.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "That is an excellent proposal. Coordinating our entry into Bulgaria will certainly put the pressure on Turkey. Let's make it happen.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "ITALY",
+        "message": "Hope things are going well down in Naples. Just confirming we are still on for our Adriatic and home-center DMZ?",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "AUSTRIA",
+        "message": "Things are quiet here, but with so much movement in the Balkans and the North, it's hard to be certain about the future of our borders. Let's just focus on keeping things stable for the moment.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I am ready to move on Bulgaria. I will support your entry from Serbia while I position to secure the sea lanes, ensuring Turkey is effectively isolated.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "That sounds like a winning plan. I will move into Bulgaria with your support, and we'll keep the pressure on the Turks from both land and sea.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I am moving to support our effort; I'll maneuver to put pressure on the Aegean and Greece immediately.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "That is excellent news. With you pressing on the Aegean and Greece, and me attacking Trieste directly, we should be able to force Austria back. Let's keep this momentum going.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "RUSSIA",
+        "message": "I see Austria is overextended; if we keep our DMZ, we can both make significant gains in the Balkans and Central Europe.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "TURKEY",
+        "message": "The situation in the Balkans is indeed fluid. I am keeping my options open, but I need to ensure that my current border security remains a top priority before I consider any major strategic shifts.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [
+        "F BEL H",
+        "F ENG H",
+        "F LON - NTH",
+        "A YOR H"
+      ],
+      "FRANCE": [
+        "A BUR H",
+        "F MAO H",
+        "A PAR - PIC",
+        "A POR - SPA"
+      ],
+      "GERMANY": [
+        "F DEN - SWE",
+        "A HOL H",
+        "F KIE - BAL",
+        "A MUN - BOH",
+        "A SIL - GAL"
+      ],
+      "ITALY": [
+        "F ALB - TRI",
+        "A TYR S F ALB - TRI",
+        "A NAP H"
+      ],
+      "AUSTRIA": [
+        "A SER - BUL",
+        "F GRE S A SER - BUL",
+        "A BUD H",
+        "A TRI H",
+        "A VIE H"
+      ],
+      "RUSSIA": [
+        "F FIN H",
+        "A GAL H",
+        "A RUM - BUL",
+        "F SEV - BLA",
+        "A WAR H"
+      ],
+      "TURKEY": [
+        "F ANK H",
+        "A BUL H",
+        "A CON H",
+        "F SMY - AEG"
+      ]
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "*A TRI"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL",
+          "F NTH"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A BUR",
+          "A SPA",
+          "A PIC"
+        ],
+        "GERMANY": [
+          "A SIL",
+          "A HOL",
+          "F SWE",
+          "A BOH",
+          "F BAL"
+        ],
+        "ITALY": [
+          "A TYR",
+          "A NAP",
+          "F TRI"
+        ],
+        "RUSSIA": [
+          "A GAL",
+          "F FIN",
+          "A RUM",
+          "A WAR",
+          "F BLA"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F AEG"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP",
+          "BEL"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "MUN",
+          "DEN",
+          "HOL"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY",
+          "BUL"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "S1902R",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "I'm keeping my Channel fleet positioned defensively. As long as you respect our current border, I'm happy to continue our non-aggression.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "I appreciate the update, England. Let's keep our arrangement in the Channel as agreed; it's mutually beneficial to maintain stability there.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "The North Sea is secure, but I'm watching the movements near Denmark. Let's make sure our northern interests don't collide as we both maneuver for position.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "The Baltic move is strictly to keep Russia in check, not to infringe on your North Sea interests. I value our northern coordination and have no intention of changing our status quo.",
+        "type": "reply"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ITALY",
+        "message": "It looks like we both had a messy turn. Let's touch base soon about how we can navigate the situation in the Balkans.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "GERMANY",
+        "message": "It was certainly a chaotic turn. I'm busy stabilizing my position in Trieste now, but I'm open to hearing your thoughts on how things are shaping up in the East.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "ITALY",
+        "message": "I am incredibly disappointed that you chose to break our DMZ and attack my home center. You have left me no choice but to respond accordingly.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "AUSTRIA",
+        "message": "I understand your frustration, but as you can see, the board is evolving rapidly and I needed to secure a position to stay competitive. I hope we can move past this and find a new way to coexist once the current tensions settle.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Italy has stabbed me in Trieste. I need to focus on defending against this aggression; are you still interested in working together to squeeze the remaining Turkish positions?",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I am shocked by Italy's treachery. My commitment to our alliance remains absolute, and I will continue to pressure Turkey to ensure they cannot capitalize on your distraction. Let's coordinate how to best handle the Turkish remnants while you deal with the Italian threat.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "This is a difficult situation with Italy, but I am here to help. I am retreating my army to Serbia to assist in your defense and keep the pressure on Turkey simultaneously.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Thank you, that is very generous. I accept your help in Serbia; let's work together to neutralize the Italian threat and keep the pressure on Turkey.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "RUSSIA",
+        "message": "You have violated our Black Sea DMZ; our diplomatic path forward is now closed.",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "Austria is reeling, but Russia has moved into the Black Sea. We must continue our pressure on Austria while I handle the Russian threat to my east.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Understood. I will maintain pressure on Austria from the West while you handle Russia. Let's keep working together to divide the Balkan centers.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [],
+      "FRANCE": [],
+      "GERMANY": [],
+      "ITALY": [],
+      "AUSTRIA": [
+        "A TRI R VEN"
+      ],
+      "RUSSIA": [],
+      "TURKEY": []
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "A VEN"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL",
+          "F NTH"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A BUR",
+          "A SPA",
+          "A PIC"
+        ],
+        "GERMANY": [
+          "A SIL",
+          "A HOL",
+          "F SWE",
+          "A BOH",
+          "F BAL"
+        ],
+        "ITALY": [
+          "A TYR",
+          "A NAP",
+          "F TRI"
+        ],
+        "RUSSIA": [
+          "A GAL",
+          "F FIN",
+          "A RUM",
+          "A WAR",
+          "F BLA"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F AEG"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP",
+          "BEL"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "MUN",
+          "DEN",
+          "HOL"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY",
+          "BUL"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "F1902M",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "I need to move into Holland to secure my northern position. I have no intention of attacking Berlin or Kiel, provided we maintain our current northern status quo.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "I cannot agree to that. Our pact specifically acknowledges Holland as my expansion and security zone. I intend to keep it that way.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "I am keeping my focus on the lowlands and the North Sea. As long as you don't move into the Channel, we remain in a state of peace.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "Agreed, England. My focus remains elsewhere, and I have no desire to enter the Channel. Let's continue our peace.",
+        "type": "reply"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "GERMANY",
+        "message": "I am concerned about the stability of the lowlands. Would you be open to coordinating our efforts to keep the region from falling entirely into English control?",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "FRANCE",
+        "message": "England's recent behavior has made me quite wary. I am very much open to discussing how we can contain their expansion in the North.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Austria has pushed into Venice, which is very aggressive. I am moving to defend it, but I need you to put maximum pressure on Greece and the Balkans to force them to withdraw.",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I acknowledge your situation in Venice and will commit my Aegean and Balkan forces to force Austria to overextend. Let's make sure our coordination remains tight while Russia remains a nuisance in the Black Sea.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Italy's betrayal needs to be dealt with firmly. I have occupied Venice; let's keep the pressure on Turkey so we can both grow stronger.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "Venice was a necessary move. I am pushing hard against the Turkish naval presence to ensure they have no room to breathe while you secure your flank against Italy.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "TURKEY",
+        "message": "It seems your position is becoming untenable; any final thoughts before the inevitable?",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "RUSSIA",
+        "message": "Arrogance is a poor substitute for diplomatic integrity; we shall see how well you fare when your neighbors realize you cannot be trusted.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I am putting my fleet in the Black Sea and army in Armenia to force the issue in Constantinople. Let's finish them.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Agreed. I am fully behind this push on Constantinople. Let's make sure they have nowhere to hide.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "Moving to attack Greece now; this should force them to look away from Venice and hopefully open up the front for you.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Perfect. With you hitting Greece, I am striking directly at Vienna from Tyrolia to force them into a complete collapse.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [
+        "F BEL S F NTH - HOL",
+        "F ENG H",
+        "F NTH - HOL",
+        "A YOR H"
+      ],
+      "FRANCE": [
+        "A BUR S A PIC - BEL",
+        "F MAO H",
+        "A PIC - BEL",
+        "A SPA H"
+      ],
+      "GERMANY": [
+        "F BAL H",
+        "A BOH - VIE",
+        "A HOL H",
+        "A SIL - GAL",
+        "F SWE - NWY"
+      ],
+      "ITALY": [
+        "A NAP - APU",
+        "F TRI - ALB",
+        "A TYR - VIE"
+      ],
+      "AUSTRIA": [
+        "A VEN - TRI",
+        "A BUL H",
+        "F GRE H",
+        "A BUD H",
+        "A VIE H"
+      ],
+      "RUSSIA": [
+        "F FIN H",
+        "A GAL H",
+        "A RUM - BUL",
+        "F BLA - CON",
+        "A WAR H"
+      ],
+      "TURKEY": [
+        "F AEG - ION",
+        "F ANK H",
+        "A CON H"
+      ]
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "A TRI"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F NTH"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A BUR",
+          "A SPA",
+          "A BEL"
+        ],
+        "GERMANY": [
+          "A SIL",
+          "A HOL",
+          "A BOH",
+          "F BAL",
+          "F NWY"
+        ],
+        "ITALY": [
+          "A TYR",
+          "A APU",
+          "F ALB"
+        ],
+        "RUSSIA": [
+          "A GAL",
+          "F FIN",
+          "A RUM",
+          "A WAR",
+          "F BLA"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F ION"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER",
+          "BUL"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR",
+          "BEL",
+          "SPA"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "MUN",
+          "DEN",
+          "HOL",
+          "NWY"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "W1902A",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "It seems you've secured Belgium. Let's maintain a DMZ in the English Channel as I regroup my forces.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "Belgium was a necessary move for my expansion, but I value our continued stability. I agree to maintain the English Channel as a DMZ while you regroup.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "My move on Holland failed, so I'm pulling back. I hope we can keep our borders stable while the situation elsewhere settles.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "It was disappointing to see you try to take Holland after our agreements. For now, I'm happy to keep the borders stable, but my trust in our previous arrangement is gone.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Austria's defenses held up, but we can't let them consolidate. Are you still on board for keeping the pressure on their southern centers?",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I am absolutely still on board; I am building to reinforce my fleet and we must keep hitting them until their lines break.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Great work on the Turkish front. Now that I have reclaimed Trieste, I am building to reinforce our joint efforts. Let's keep moving forward.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "Excellent to hear. I am building in Sevastopol to ensure our naval dominance remains unchallenged. Let's keep the momentum against the Turks.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [],
+      "FRANCE": [
+        "F BRE B",
+        "A PAR B"
+      ],
+      "GERMANY": [
+        "A MUN B"
+      ],
+      "ITALY": [],
+      "AUSTRIA": [],
+      "RUSSIA": [],
+      "TURKEY": []
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "A TRI"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F NTH"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A BUR",
+          "A SPA",
+          "A BEL",
+          "F BRE",
+          "A PAR"
+        ],
+        "GERMANY": [
+          "A SIL",
+          "A HOL",
+          "A BOH",
+          "F BAL",
+          "F NWY",
+          "A MUN"
+        ],
+        "ITALY": [
+          "A TYR",
+          "A APU",
+          "F ALB"
+        ],
+        "RUSSIA": [
+          "A GAL",
+          "F FIN",
+          "A RUM",
+          "A WAR",
+          "F BLA"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F ION"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER",
+          "BUL"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR",
+          "BEL",
+          "SPA"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "MUN",
+          "DEN",
+          "HOL",
+          "NWY"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "S1903M",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "I'm looking to secure a foothold back in Belgium. Let's see if we can find a mutually beneficial arrangement so we aren't constantly clashing over it.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "I've put a lot of work into stabilizing the region around Belgium and intend to hold it for now. I'm very happy to keep our Channel DMZ strong and focus on our respective fronts elsewhere.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "Your current strength in the north is concerning. I'm focusing my efforts toward Belgium, but I'll be watching the North Sea closely.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "My presence in the north is solely to protect my existing centers. As long as you stay focused on your own path, we can maintain the status quo.",
+        "type": "reply"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "GERMANY",
+        "message": "The situation in the north is complex, but I believe we have shared interests in limiting English expansion. I'm focusing my units to protect my interests in the Lowlands.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "FRANCE",
+        "message": "I agree completely. England's recent actions have proven they are not to be trusted. I am coordinating my northern forces to ensure they remain contained; let's stay in close contact regarding our moves in the Lowlands.",
+        "type": "reply"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "FRANCE",
+        "message": "I am initiating a move to pressure the North Sea and the English lines. Let's keep our southern border quiet while I keep them distracted.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "GERMANY",
+        "message": "That sounds like a productive strategy, Germany. I agree to keep our shared border quiet while you put pressure on the northern theaters.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Austria is still overextended. I'm hitting Trieste again, and if you press Greece, we can finally force a breakthrough.",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I'm with you. I'm moving on Greece now to force Austria's hand and keep the pressure on their southern flank.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "With Trieste back in my hands, I am ready to push deeper into Turkish territory. Let's make our move on Constantinople count.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "Agreed. I will coordinate my Black Sea fleet to support your push on Constantinople. Let's finish them off once and for all.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I'm moving my fleet into the Black Sea to support the assault on Constantinople. Let's make sure our coordination is airtight for this final push.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Agreed. I am ready to support your move into the Black Sea from my positions. Let's finish this and secure the region together.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I'm moving on Greece now; if we time this correctly, we can split their forces and take back our territory.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Agreed. I am moving both my fleet in Albania and my army in Tyrolia against Trieste now. Let's make sure they can't defend both fronts.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [
+        "F ENG S F NTH - BEL",
+        "F NTH - BEL",
+        "A YOR H"
+      ],
+      "FRANCE": [
+        "A BEL H",
+        "F BRE H",
+        "A BUR - MUN",
+        "F MAO H",
+        "A PAR - PIC",
+        "A SPA H"
+      ],
+      "GERMANY": [
+        "F BAL - SWE",
+        "A BOH - VIE",
+        "A HOL H",
+        "A MUN - TYR",
+        "F NWY - NTH",
+        "A SIL - GAL"
+      ],
+      "ITALY": [
+        "F ALB - TRI",
+        "A TYR S F ALB - TRI",
+        "A APU H"
+      ],
+      "AUSTRIA": [
+        "A BUL H",
+        "F GRE H",
+        "A VIE H",
+        "A BUD H",
+        "A TRI H"
+      ],
+      "RUSSIA": [
+        "F BLA - CON",
+        "F FIN H",
+        "A GAL H",
+        "A RUM - BUL",
+        "A WAR H"
+      ],
+      "TURKEY": [
+        "F ANK H",
+        "A CON H",
+        "F ION - GRE"
+      ]
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "A TRI"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A BUR",
+          "A SPA",
+          "F BRE",
+          "A PIC",
+          "*A BEL"
+        ],
+        "GERMANY": [
+          "A SIL",
+          "A HOL",
+          "A BOH",
+          "A MUN",
+          "F SWE",
+          "F NTH"
+        ],
+        "ITALY": [
+          "A TYR",
+          "A APU",
+          "F ALB"
+        ],
+        "RUSSIA": [
+          "A GAL",
+          "F FIN",
+          "A RUM",
+          "A WAR",
+          "F BLA"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F ION"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER",
+          "BUL"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR",
+          "BEL",
+          "SPA"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "MUN",
+          "DEN",
+          "HOL",
+          "NWY"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "S1903R",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "The situation in Belgium remains chaotic. I'm moving to stabilize the province; let's maintain a DMZ in the Channel so we can both focus on our other neighbors.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "I understand the situation. I agree to keep the English Channel DMZ in place while we both handle the recent developments in the Lowlands.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "It looks like the center is wide open. I am taking Belgium to stabilize the region; I have no interest in your northern holdings.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "I'm watching the situation in the Lowlands closely. As long as you respect our previous agreements regarding my borders, I am content to see the region stabilize.",
+        "type": "reply"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "FRANCE",
+        "message": "It seems the English retreat from Belgium is inevitable. Let's ensure the region remains stable and free of their influence as we discussed.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "GERMANY",
+        "message": "Agreed, Germany. My priority remains containing English influence in the Lowlands while we maintain our stable border.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "It was a tough turn for both of us. Austria is proving difficult to dislodge, but we must maintain pressure; are you ready to coordinate another strike on their southern borders?",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "Austria is hunkered down, but our combined pressure is their greatest weakness. I am ready to coordinate another strike on their Balkan borders; let's hit their line hard.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "It looks like the front is shifting. I'm keeping my lines steady to ensure we finish off Turkey as planned. Let's stay focused.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "Agreed. I am maintaining my positions to support the final push against Constantinople. Let's ensure Turkey is completely removed from the board.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "It is clear that the situation in the West is chaotic. Let's focus our remaining strength on securing Constantinople once and for all.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "I agree completely. Let's make this the final push against Constantinople. I have my defensive lines set and am ready to support your move into the city.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "Let's commit again to pressuring their line. I am repositioning my fleet to keep the pressure on their southern supply centers.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Agreed. I am maintaining my position to hold them in place while you apply pressure on their southern centers. Let's keep this momentum going.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [],
+      "FRANCE": [
+        "A BEL R RUH"
+      ],
+      "GERMANY": [],
+      "ITALY": [],
+      "AUSTRIA": [],
+      "RUSSIA": [],
+      "TURKEY": []
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "A TRI"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A BUR",
+          "A SPA",
+          "F BRE",
+          "A PIC",
+          "A RUH"
+        ],
+        "GERMANY": [
+          "A SIL",
+          "A HOL",
+          "A BOH",
+          "A MUN",
+          "F SWE",
+          "F NTH"
+        ],
+        "ITALY": [
+          "A TYR",
+          "A APU",
+          "F ALB"
+        ],
+        "RUSSIA": [
+          "A GAL",
+          "F FIN",
+          "A RUM",
+          "A WAR",
+          "F BLA"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F ION"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER",
+          "BUL"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR",
+          "BEL",
+          "SPA"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "MUN",
+          "DEN",
+          "HOL",
+          "NWY"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "F1903M",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "I am repositioning my fleets to ensure the security of the North Sea. I suggest we keep our current borders in place to avoid unnecessary conflict.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "I agree that a stable North Sea is beneficial for both of us right now. Let's keep our current borders respected.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "I am holding my position in the Channel for now, but I encourage you to avoid encroaching further toward my coastal centers.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "I appreciate the transparency. I remain fully committed to our Channel DMZ and have no designs on your coastal centers this turn.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "I am initiating another strike on Trieste now. If you maintain pressure on the south, we should finally see their lines crack.",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I am standing by our plan and will exert maximum pressure on their southern supply centers now. Let's make this count.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Let's commit our forces to finally taking Constantinople this turn. I'm ready to provide the necessary support for your fleet to finish the job.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I agree. My fleet in the Black Sea is ready to take the city. Let's execute the final push on Constantinople now.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I am initiating the final push on Constantinople with my fleet in the Black Sea. Let's ensure our support is synchronized to secure the capture.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "I'm with you. Let's make this the last turn for the Turks. I'll maintain my positions in Bulgaria and the Aegean to ensure our success is absolute.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I am committing my fleet to provide maximum pressure on the Balkan theater. Let's force them out of their strongholds once and for all.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Perfect. I am moving my forces against Trieste now. With your help in the Balkans, we will finally break their line.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [
+        "F BEL - PIC",
+        "F ENG H",
+        "A YOR H"
+      ],
+      "FRANCE": [
+        "F BRE H",
+        "A BUR S A RUH - MUN",
+        "F MAO H",
+        "A PIC - BEL",
+        "A RUH - MUN",
+        "A SPA H"
+      ],
+      "GERMANY": [
+        "A BOH S A SIL - GAL",
+        "A HOL - BEL",
+        "A MUN - TYR",
+        "F NTH H",
+        "A SIL - GAL",
+        "F SWE H"
+      ],
+      "ITALY": [
+        "F ALB - TRI",
+        "A TYR S F ALB - TRI",
+        "A APU - VEN"
+      ],
+      "AUSTRIA": [
+        "A BUL H",
+        "F GRE H",
+        "A TRI H",
+        "A BUD H",
+        "A VIE H"
+      ],
+      "RUSSIA": [
+        "F BLA - CON",
+        "F FIN H",
+        "A GAL H",
+        "A RUM H",
+        "A WAR H"
+      ],
+      "TURKEY": [
+        "F ANK H",
+        "A CON H",
+        "F ION - GRE"
+      ]
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "A TRI"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A BUR",
+          "A SPA",
+          "F BRE",
+          "A PIC",
+          "A MUN"
+        ],
+        "GERMANY": [
+          "A HOL",
+          "A BOH",
+          "F SWE",
+          "F NTH",
+          "A GAL",
+          "*A MUN"
+        ],
+        "ITALY": [
+          "A TYR",
+          "F ALB",
+          "A VEN"
+        ],
+        "RUSSIA": [
+          "F FIN",
+          "A RUM",
+          "A WAR",
+          "F BLA",
+          "*A GAL"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F ION"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER",
+          "BUL"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR",
+          "BEL",
+          "SPA"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "MUN",
+          "DEN",
+          "HOL",
+          "NWY"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "F1903R",
+    "messages": [
+      {
+        "sender": "GERMANY",
+        "recipient": "FRANCE",
+        "message": "My position in Munich was compromised. I am consolidating my forces, but I remain committed to our coordination against English influence in the North.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "GERMANY",
+        "message": "I understand the tactical necessity. I remain committed to our coordination and our quiet border while we continue to address the northern situation.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "The front is still holding against Austria, but the situation is shifting with the conflict in the North. Let's keep our pressure on the Balkans coordinated while we see how Germany and France settle their border.",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "Agreed, keeping the Balkan front tight is vital. I am locked in on maintaining pressure on their southern supply centers while we observe the northern power struggle.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "It looks like the Germans are putting heat on your borders. Let's keep the focus on finishing the Turks so we can address the northern threat.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "Agreed. I am retreating my army from Galicia to ensure it remains active. Let us maintain our focus on the Turkish positions while monitoring Germany's expansionist move into my border.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I am retreating my army to Ukraine to stabilize the border. Let's keep our focus on eliminating the Turkish units while we evaluate Germany's aggressive posture.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Understood. Re-stabilizing your position makes sense. I'll continue to hold my ground in the Balkans; let's keep working to clear the Turks out so we can both pivot against these German incursions.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "The stalemate is frustrating, but if we stay coordinated, Austria will eventually break. I am keeping my units positioned to maintain the pressure on their southern supply centers.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Agreed. I am holding my positions to pin their units down. As long as we keep the pressure on from both sides, they will have to break eventually.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [],
+      "FRANCE": [],
+      "GERMANY": [
+        "A MUN R SIL"
+      ],
+      "ITALY": [],
+      "AUSTRIA": [],
+      "RUSSIA": [
+        "A GAL R UKR"
+      ],
+      "TURKEY": []
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "A TRI"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A BUR",
+          "A SPA",
+          "F BRE",
+          "A PIC",
+          "A MUN"
+        ],
+        "GERMANY": [
+          "A HOL",
+          "A BOH",
+          "F SWE",
+          "F NTH",
+          "A GAL",
+          "A SIL"
+        ],
+        "ITALY": [
+          "A TYR",
+          "F ALB",
+          "A VEN"
+        ],
+        "RUSSIA": [
+          "F FIN",
+          "A RUM",
+          "A WAR",
+          "F BLA",
+          "A UKR"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F ION"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER",
+          "BUL"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP",
+          "BEL"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR",
+          "SPA",
+          "MUN"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "DEN",
+          "HOL",
+          "NWY",
+          "SWE"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "W1903A",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "I am rebuilding my fleet strength to ensure the North Sea remains secure. Let's maintain our current boundaries.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "Acknowledged. Let's keep our boundaries secure as we both recover and rebuild.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "I have stabilized my position in Belgium. Let's keep the Channel quiet for now.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "Acknowledged. Let's keep the Channel quiet and stable for the upcoming year.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Austria is still holding on, but their position is untenable if we keep pushing. Let's maintain our coordination for the upcoming spring.",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I completely agree. My forces are ready for the spring push; let's keep the pressure relentless.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "I'm looking to reinforce my borders. Let's keep the pressure on Turkey together.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I am fully aligned with keeping that pressure up. Let us ensure the Turkish remnants are dealt with so we can secure our respective borders against the shifting northern threat.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [
+        "F EDI B"
+      ],
+      "FRANCE": [],
+      "GERMANY": [],
+      "ITALY": [],
+      "AUSTRIA": [],
+      "RUSSIA": [],
+      "TURKEY": []
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "A TRI"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL",
+          "F EDI"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "A BUR",
+          "A SPA",
+          "F BRE",
+          "A PIC",
+          "A MUN"
+        ],
+        "GERMANY": [
+          "A HOL",
+          "A BOH",
+          "F SWE",
+          "F NTH",
+          "A GAL",
+          "A SIL"
+        ],
+        "ITALY": [
+          "A TYR",
+          "F ALB",
+          "A VEN"
+        ],
+        "RUSSIA": [
+          "F FIN",
+          "A RUM",
+          "A WAR",
+          "F BLA",
+          "A UKR"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F ION"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER",
+          "BUL"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP",
+          "BEL"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR",
+          "SPA",
+          "MUN"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "DEN",
+          "HOL",
+          "NWY",
+          "SWE"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "S1904M",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "The North Sea is key to regional stability, and I'm moving to ensure it doesn't fall solely under your control. I remain open to a neutral arrangement if you are willing to pull back from your aggressive positioning.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "Our current North Sea borders were agreed upon to ensure stability. I have no intention of changing that, provided you respect the same boundaries. Let's keep our focus away from unnecessary confrontation.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "I'm focusing my attention on northern waters. As long as our Channel border remains respected, I see no reason for us to clash.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "I agree. Let's keep the Channel stable as we focus on our other fronts.",
+        "type": "reply"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "GERMANY",
+        "message": "It looks like the front is shifting. I am holding my lines to keep our mutual border secure while I adjust to the regional changes.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "FRANCE",
+        "message": "I agree with maintaining our border stability while the front shifts. I am continuing to push my eastern forces, so your flank support remains invaluable.",
+        "type": "reply"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "RUSSIA",
+        "message": "It looks like the front is shifting. I'm focusing my attention elsewhere, but I would suggest keeping an eye on your southern flank.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "GERMANY",
+        "message": "Thanks for the tip. I'm keeping a close eye on the South, and I value our stable border. Let's keep the DMZ in Silesia active.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "The time to strike Trieste is now. I am throwing everything I have at their defense in Trieste; please make sure you keep the heat on them in Greece.",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I am ready and fully committed to the pincer movement; my fleet is striking Greece to ensure Trieste is isolated.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Let's finish off Constantinople this turn. I'm repositioning my forces to ensure we wrap this up decisively.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I agree completely. I am positioning my units to assist in the final capture of Constantinople this turn. Let's make this decisive.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I am moving my Black Sea fleet to support the final assault on Constantinople this turn. Let's make this the definitive end of Turkish influence in the region.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Agreed. I am ready to support your fleet's final maneuver against Constantinople. Let's finish this task and move on.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "My fleet is moving to press the attack on Greece as agreed; let's force them to break their line.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Acknowledged. I am concentrating all three of my units\u2014ALB, TYR, and VEN\u2014against Trieste. Let's make this count.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [
+        "F BEL - PIC",
+        "F EDI - NTH",
+        "F ENG S F EDI - NTH",
+        "A YOR H"
+      ],
+      "FRANCE": [
+        "F BRE S F MAO - ENG",
+        "A BUR - PAR",
+        "F MAO C A SPA - BEL",
+        "A MUN S A TYR - BOH",
+        "A PIC S F BEL",
+        "A SPA - POR"
+      ],
+      "GERMANY": [
+        "A BOH - VIE",
+        "A GAL S A SIL - WAR",
+        "A HOL H",
+        "F NTH H",
+        "A SIL - WAR",
+        "F SWE H"
+      ],
+      "ITALY": [
+        "F ALB S A VEN - TRI",
+        "A TYR S A VEN - TRI",
+        "A VEN - TRI"
+      ],
+      "AUSTRIA": [
+        "A TRI - VEN",
+        "A BUL H",
+        "F GRE H",
+        "A BUD H",
+        "A VIE H"
+      ],
+      "RUSSIA": [
+        "F BLA - CON",
+        "F FIN H",
+        "A RUM H",
+        "A UKR H",
+        "A WAR H"
+      ],
+      "TURKEY": [
+        "F ANK H",
+        "A CON H",
+        "F ION - GRE"
+      ]
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "*A TRI"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL",
+          "F NTH"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "F BRE",
+          "A PIC",
+          "A MUN",
+          "A PAR",
+          "A POR"
+        ],
+        "GERMANY": [
+          "A HOL",
+          "A BOH",
+          "F SWE",
+          "A GAL",
+          "A WAR",
+          "*F NTH"
+        ],
+        "ITALY": [
+          "A TYR",
+          "F ALB",
+          "A TRI"
+        ],
+        "RUSSIA": [
+          "F FIN",
+          "A RUM",
+          "F BLA",
+          "A UKR",
+          "*A WAR"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F ION"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER",
+          "BUL"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP",
+          "BEL"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR",
+          "SPA",
+          "MUN"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "DEN",
+          "HOL",
+          "NWY",
+          "SWE"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "S1904R",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "It seems the North Sea became too crowded. I'm regrouping in the Norwegian Sea and expect you to respect the current status quo in the north.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "Understood. The North Sea has been a chaotic theater; I have no issue with you regrouping in the Norwegian Sea as long as our established borders in the region are respected.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "Let's keep our non-aggression in the Channel while things heat up in the east. I have no interest in escalating our border conflict right now.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "I agree. Let's keep the Channel stable while we address the shifting situation elsewhere.",
+        "type": "reply"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ITALY",
+        "message": "I'm retreating my forces to secure my position in the Mediterranean. I trust you'll continue to respect our long-standing border in Piedmont.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "FRANCE",
+        "message": "Acknowledged. Our DMZ in Piedmont remains a cornerstone of our relationship, and I have no plans to move on your borders. Good luck with your Mediterranean maneuvers.",
+        "type": "reply"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "My fleet is retreating from the North Sea as discussed. I expect the border stability to be maintained.",
+        "type": "initial"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "Acknowledged. I appreciate the retreat, and I'm happy to maintain current border stability while we both focus on other regional pressures.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "ITALY",
+        "message": "Your move on Trieste clearly violates our previous understanding. I have no choice but to defend my interests.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "AUSTRIA",
+        "message": "I apologize if you feel our arrangements were violated, but competition for limited centers is the nature of this game. I'm focusing on stabilizing my borders, and I hope we can eventually move past this tension.",
+        "type": "reply"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Italy is pushing hard in the Adriatic. Once we finish Turkey, I will need your help to push them back.",
+        "type": "initial"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I see the Italian aggression. Once we fully solidify our control over Constantinople, I am ready to shift my support to help you reclaim your borders in the Adriatic.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "My army in Warsaw has been dislodged, but I am retreating to Moscow to regroup. I remain committed to our joint goals in the south.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "Sorry to hear about your retreat. Regrouping is the right call. I am stuck retreating my own unit, but let's keep our communication open to coordinate our next steps against our respective aggressors.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "Austria is rattled; if we keep our focus on their southern centers, we can force them to pull back completely.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "Agreed. I am regrouping my units now, but I am fully committed to our plan. Let's keep the pressure relentless.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [],
+      "FRANCE": [],
+      "GERMANY": [
+        "F NTH R HEL"
+      ],
+      "ITALY": [],
+      "AUSTRIA": [
+        "A TRI R SER"
+      ],
+      "RUSSIA": [
+        "A WAR R MOS"
+      ],
+      "TURKEY": []
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "A VIE",
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "A SER"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL",
+          "F NTH"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "F BRE",
+          "A PIC",
+          "A MUN",
+          "A PAR",
+          "A POR"
+        ],
+        "GERMANY": [
+          "A HOL",
+          "A BOH",
+          "F SWE",
+          "A GAL",
+          "A WAR",
+          "F HEL"
+        ],
+        "ITALY": [
+          "A TYR",
+          "F ALB",
+          "A TRI"
+        ],
+        "RUSSIA": [
+          "F FIN",
+          "A RUM",
+          "F BLA",
+          "A UKR",
+          "A MOS"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F ION"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "TRI",
+          "VIE",
+          "GRE",
+          "SER",
+          "BUL"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP",
+          "BEL"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR",
+          "SPA",
+          "MUN"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "DEN",
+          "HOL",
+          "NWY",
+          "SWE"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "WAR",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY"
+        ]
+      }
+    }
+  },
+  {
+    "phase": "F1904M",
+    "messages": [
+      {
+        "sender": "ENGLAND",
+        "recipient": "FRANCE",
+        "message": "I'm keeping my Channel fleet positioned defensively. I suggest we both keep our current borders steady while the rest of Europe focuses on their own conflicts.",
+        "type": "initial"
+      },
+      {
+        "sender": "FRANCE",
+        "recipient": "ENGLAND",
+        "message": "I agree. Let's keep our current borders steady and maintain the Channel DMZ so we can focus on our respective regional priorities.",
+        "type": "reply"
+      },
+      {
+        "sender": "ENGLAND",
+        "recipient": "GERMANY",
+        "message": "The North Sea remains stable as agreed. I'm focusing on strengthening my southern holdings.",
+        "type": "initial"
+      },
+      {
+        "sender": "GERMANY",
+        "recipient": "ENGLAND",
+        "message": "Acknowledged. Keeping our boundaries secure as agreed is the best path forward for both of us right now.",
+        "type": "reply"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "I'm in Trieste now. Let's make sure we keep the pressure on them; I'm looking at Serbia next to break their line further.",
+        "type": "initial"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "Excellent work taking Trieste. I am fully on board with moving on Serbia to finalize their collapse; I will continue applying pressure to Greece and the Aegean to pin their remaining forces.",
+        "type": "reply"
+      },
+      {
+        "sender": "RUSSIA",
+        "recipient": "AUSTRIA",
+        "message": "I have consolidated in Moscow and am ready to support our final maneuvers against Turkey. Let's finish them.",
+        "type": "initial"
+      },
+      {
+        "sender": "AUSTRIA",
+        "recipient": "RUSSIA",
+        "message": "I agree, it is time to end the Turkish presence. I will hold my positions in the Balkans while we sync our moves on Constantinople.",
+        "type": "reply"
+      },
+      {
+        "sender": "TURKEY",
+        "recipient": "ITALY",
+        "message": "I am initiating the support on Serbia as planned to assist in your push; we have the momentum to finish them.",
+        "type": "initial"
+      },
+      {
+        "sender": "ITALY",
+        "recipient": "TURKEY",
+        "message": "That support is exactly what I needed. I am moving to take Serbia immediately; let's crush them while we have this window.",
+        "type": "reply"
+      }
+    ],
+    "orders": {
+      "ENGLAND": [
+        "F BEL - HOL",
+        "F NTH S F BEL - HOL",
+        "F ENG H",
+        "A YOR H"
+      ],
+      "FRANCE": [
+        "F BRE S A PIC",
+        "F MAO S A PIC - BRE",
+        "A MUN - SIL",
+        "A PAR S A POR - GAS",
+        "A PIC S A HOL - BEL",
+        "A POR - KIE VIA"
+      ],
+      "GERMANY": [
+        "A BOH S A GAL - VIE",
+        "A GAL - VIE",
+        "A HOL H",
+        "F HEL - NTH",
+        "A WAR - UKR",
+        "F SWE H"
+      ],
+      "ITALY": [
+        "A TRI - SER",
+        "A TYR H",
+        "F ALB - GRE"
+      ],
+      "AUSTRIA": [
+        "A BUL H",
+        "F GRE H",
+        "A SER H",
+        "A BUD H",
+        "A VIE H"
+      ],
+      "RUSSIA": [
+        "F BLA - CON",
+        "F FIN H",
+        "A MOS H",
+        "A RUM H",
+        "A UKR H"
+      ],
+      "TURKEY": [
+        "F ANK H",
+        "A CON H",
+        "F ION - GRE"
+      ]
+    },
+    "board": {
+      "units": {
+        "AUSTRIA": [
+          "F GRE",
+          "A BUD",
+          "A BUL",
+          "A SER"
+        ],
+        "ENGLAND": [
+          "F ENG",
+          "A YOR",
+          "F BEL",
+          "F NTH"
+        ],
+        "FRANCE": [
+          "F MAO",
+          "F BRE",
+          "A PIC",
+          "A PAR",
+          "A POR",
+          "A SIL"
+        ],
+        "GERMANY": [
+          "A HOL",
+          "A BOH",
+          "F SWE",
+          "A WAR",
+          "F HEL",
+          "A VIE"
+        ],
+        "ITALY": [
+          "A TYR",
+          "F ALB",
+          "A TRI"
+        ],
+        "RUSSIA": [
+          "F FIN",
+          "A RUM",
+          "F BLA",
+          "A UKR",
+          "A MOS"
+        ],
+        "TURKEY": [
+          "F ANK",
+          "A CON",
+          "F ION"
+        ]
+      },
+      "centers": {
+        "AUSTRIA": [
+          "BUD",
+          "GRE",
+          "SER",
+          "BUL"
+        ],
+        "ENGLAND": [
+          "EDI",
+          "LON",
+          "LVP",
+          "BEL"
+        ],
+        "FRANCE": [
+          "BRE",
+          "MAR",
+          "PAR",
+          "POR",
+          "SPA",
+          "MUN"
+        ],
+        "GERMANY": [
+          "BER",
+          "KIE",
+          "DEN",
+          "HOL",
+          "NWY",
+          "SWE",
+          "VIE",
+          "WAR"
+        ],
+        "ITALY": [
+          "NAP",
+          "ROM",
+          "VEN",
+          "TRI"
+        ],
+        "RUSSIA": [
+          "MOS",
+          "SEV",
+          "STP",
+          "RUM"
+        ],
+        "TURKEY": [
+          "ANK",
+          "CON",
+          "SMY"
+        ]
+      }
+    }
+  }
+]
