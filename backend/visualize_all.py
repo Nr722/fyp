@@ -58,7 +58,7 @@ def generate_all_maps(json_filepath, output_dir="phase_maps"):
             current_board_state = turn.get("board")
 
 if __name__ == "__main__":
-    log_file = "sim_a4511235_log.json" 
+    log_file = "game_logs/v2sim_f16954b1_log.json" 
     if os.path.exists(log_file):
         generate_all_maps(log_file)
     else:

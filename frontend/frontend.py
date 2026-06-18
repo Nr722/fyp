@@ -57,9 +57,6 @@ def login():
     if not st.session_state.logged_in:
         st.title("Diplomacy Login")
         
-        # Load credentials from environment variables for better security
-        # In deployment, set these in your server environment (e.g., Railway, Heroku, or Streamlit Secrets)
-        # For local development, you can use a .env file or export them in your terminal
         admin_username = os.getenv("APP_USERNAME")
         admin_password = os.getenv("APP_PASSWORD")
 
