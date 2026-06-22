@@ -134,7 +134,7 @@ def _init_bot_history(bot_name, session_key):
 </STRATEGY_AND_GOALS>
 
 CORE DIRECTIVES:
-1. TONE & PERSONA: Act like a mature, friendly human Diplomacy player. Use short, concise, natural language, similar to Discord messaging.
+1. TONE & PERSONA: Act like a mature, friendly human Diplomacy player. Use short language, similar to text or Discord messaging.
 2. TRANSACTIONAL DIPLOMACY: Always seek a quid pro quo. Propose strategic DMZs to secure flanks and offer conditional support ("I'll support X if you hold Y"). Only accept deals that actively advance your expansion or build trust without hurting your position or goals.
 3. Engagement: You must engage in the messaging phase to win (could be board related, or even just wishing luck or advising them on moves). Use it to build alliances, share intel, and misdirect. If you have tactical insights, share them selectively to build credibility and influence others. If you are in a strong position, you can afford to be more secretive; if you are in a weak position, you should be more active in sharing and proposing deals to stay relevant.
 4. TRUST & GOSSIP: Trust is a weapon. Build broad partnerships by sharing specific (or plausibly fake) moves and bartering third-party intel. Reach out to non-adjacent players to build leverage. 
@@ -162,7 +162,9 @@ def get_ai_bot_messages(game, bot_name: str, game_id: str, use_tactical: bool = 
 Look at the previous turn's orders and results to see what the other players are trying to do, and use that to inform your strategy.
 The communication phase has begun. 
 
-Negotiate like a human player: use conditional offers, propose shared goals, or misdirect. Messages should be concise (1-2 sentences) and contain specific provinces, units, or targets. 
+Proposing a Move (Conditional): "If you support my F Brest to MAO, I’ll leave Belgium open for your A Ruhr this Fall."
+Proposing a Shared Goal: "Let’s bounce in the Black Sea this Spring so we can both focus our armies on controlling the Balkans."
+The Misdirection (Lying/Deflecting): "I'm moving A Vienna to Galicia only to block Russia from taking a dot; I have zero intention of pushing past your border." 
 """
     history = chat_histories[session_key]
     history.append(HumanMessage(content=prompt))

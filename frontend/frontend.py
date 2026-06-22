@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import base64
 import time
-
 import os
 from dotenv import load_dotenv
 
@@ -99,6 +98,7 @@ if 'game_id' not in st.session_state:
     st.session_state.negotiation_phase_ended = False
     st.session_state.last_seen_messages = 0
     st.session_state.read_counts = {}
+    st.session_state.turn_review = None
 
 def start_new_game(power, num_ai_bots=6):
     res = requests.post(f"{API_URL}/game/new", json={"human_power": power, "num_ai_bots": num_ai_bots}, headers=get_headers())
@@ -108,6 +108,7 @@ def start_new_game(power, num_ai_bots=6):
         st.session_state.human_power = data["human_power"]
         st.session_state.human_orders_submitted = False
         st.session_state.negotiation_phase_ended = False
+        st.session_state.turn_review = None
         st.session_state.last_seen_messages = 0
         st.session_state.read_counts = {}
         st.session_state.ai_powers = data.get("ai_powers", [])
@@ -123,16 +124,6 @@ if not st.session_state.game_id:
 
 # Check for any rate limit events from the last operation
 check_rate_limits()
-
-# Debug: Fake Rate Limit Button
-# if st.sidebar.button("Debug: Test Rate Limit Popup"):
-#     requests.post(f"{API_URL}/game/{st.session_state.game_id}/test-rate-limit", headers=get_headers())
-#     st.rerun()
-
-# if st.sidebar.button("Debug: Clear Rate Limit History"):
-#     requests.post(f"{API_URL}/game/{st.session_state.game_id}/clear-rate-limits", headers=get_headers())
-#     st.session_state.last_rate_limit_check = time.time()
-#     st.success("Cleared")
 
 # Fetch current game state
 res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/state", headers=get_headers())
@@ -194,66 +185,64 @@ def render_svg_string(svg_string):
         unsafe_allow_html=True
     )
 
-# Timeline Feature
-st.header("Game Board Timeline")
-past_phases = game_state.get("past_phases", [])
-current_phase_label = f"{game_state.get('phase', 'Present')} (Current Phase)"
-if past_phases:
-    timeline_options = past_phases + [current_phase_label]
-    selected_time = st.selectbox(
-        "View Board History:", 
-        options=timeline_options,
-        index=len(timeline_options) - 1, # Default: Present
-        key="timeline_select"
-    )
+# Hide Timeline and Status if we are actively reviewing a past turn
+if not st.session_state.get("turn_review"):
+    # Timeline Feature
+    st.header("Game Board Timeline")
+    past_phases = game_state.get("past_phases", [])
+    current_phase_label = f"{game_state.get('phase', 'Present')} (Current Phase)"
     
-    if selected_time == current_phase_label:
-        render_svg_string(game_state["map_svg"])
+    if past_phases:
+        timeline_options = past_phases + [current_phase_label]
+        selected_time = st.selectbox(
+            "View Board History:", 
+            options=timeline_options,
+            index=len(timeline_options) - 1, # Default: Present
+            key="timeline_select"
+        )
+        
+        if selected_time == current_phase_label:
+            render_svg_string(game_state["map_svg"])
+        else:
+            # Fetch historical map for selected_time
+            try:
+                hist_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/history/{selected_time}", headers=get_headers())
+                if hist_res.status_code == 200:
+                    hist_svg = hist_res.json().get("map_svg")
+                    st.info(f"Viewing historical map for {selected_time}. Orders shown are the orders submitted during that phase.")
+                    render_svg_string(hist_svg)
+                else:
+                    st.error("Failed to load historical timeline map.")
+            except Exception as e:
+                st.error(f"Error fetching historical map: {e}")
     else:
-        # Fetch historical map for selected_time
-        try:
-            hist_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/history/{selected_time}", headers=get_headers())
-            if hist_res.status_code == 200:
-                hist_svg = hist_res.json().get("map_svg")
-                st.info(f"Viewing historical map for {selected_time}. Orders shown are the orders submitted during that phase.")
-                render_svg_string(hist_svg)
-            else:
-                st.error("Failed to load historical timeline map.")
-        except Exception as e:
-            st.error(f"Error fetching historical map: {e}")
-else:
-    # If no past phases yet, just show present map
-    st.header("Game Board")
-    render_svg_string(game_state["map_svg"])
+        # If no past phases yet, just show present map
+        st.header("Game Board")
+        render_svg_string(game_state["map_svg"])
 
+    # Display board status summary
+    st.header("Board Status")
+    with st.expander("Show Supply Centers and Units", expanded=True):
+        all_units = game_state["units"]
+        all_centers = game_state["centers"]
+        cols = st.columns(4)
+        i = 0
+        for power_name in sorted(all_powers):
+            if power_name in active_powers:
+                units = all_units.get(power_name, [])
+                centers = all_centers.get(power_name, [])
+                with cols[i % 4]:
+                    st.markdown(f"**{power_name}**")
+                    st.markdown(f"{len(centers)} centers | {len(units)} units")
+                i += 1
 
-# Legacy Last Turn Expander (optional, removed to avoid clutter, using timeline instead)
-# if game_state.get("history_svg"):
-#     with st.expander("Show Last Turn Adjudication"):
-#         st.subheader(f"Adjudication Results: {game_state['last_phase_name']}")
-#         render_svg_string(game_state["history_svg"])
-
-# Display board status summary
-st.header("Board Status")
-with st.expander("Show Supply Centers and Units", expanded=True):
-    all_units = game_state["units"]
-    all_centers = game_state["centers"]
-    cols = st.columns(4)
-    i = 0
-    for power_name in sorted(all_powers):
-        if power_name in active_powers:
-            units = all_units.get(power_name, [])
-            centers = all_centers.get(power_name, [])
-            with cols[i % 4]:
-                st.markdown(f"**{power_name}**")
-                st.markdown(f"{len(centers)} centers | {len(units)} units")
-            i += 1
-
-st.markdown("---")
+    st.markdown("---")
 
 # --- Orders (Human only) ---
 HUMAN_POWER = st.session_state.human_power
-if not game_state["is_game_done"]:
+
+# Allow entry into order block if game isn't done OR if we are currently reviewing the final turn
+if not game_state["is_game_done"] or st.session_state.get("turn_review"):
     if not st.session_state.human_orders_submitted:
         st.header(f"Enter Orders for {HUMAN_POWER}")
         
@@ -344,6 +333,7 @@ if not game_state["is_game_done"]:
                         key=f"order_{HUMAN_POWER}_{loc}_{phase_type}"
                     )
                     current_orders.append(order)
+                    
                 # Submit all orders together
                 if st.button(f"Submit Orders / Lock In", use_container_width=True, type="primary"):
                     valid_submission = True
@@ -370,32 +360,66 @@ if not game_state["is_game_done"]:
                         else:
                             st.error(f"Invalid order submitted: {submit_res.text}")
     else:
-        # Human orders in, generate bot orders and process
-        with st.status("Processing Turn...", expanded=True) as status:
-            st.write("Gathering orders from all other players...")
-            process_res = requests.post(
-                f"{API_URL}/game/{st.session_state.game_id}/process",
-                json={"human_power": HUMAN_POWER, "phase": current_phase},
-                headers=get_headers()
-            )
-            
-            if process_res.status_code == 200:
-                status.update(label="Turn Processed!", state="complete", expanded=False)
-                process_data = process_res.json()
-                bot_orders = process_data.get("bot_orders", {})
-                for bp, orders in bot_orders.items():
-                    st.write(f" {bp}: {', '.join(orders) if orders else 'HOLD ALL'}")
-                    
-                st.success(f"Processed {process_data['prev_phase']}. New phase: {process_data['new_phase']}")
-                
-                # Reset for next turn
+        if not st.session_state.get("turn_review"):
+            # Human orders in: generate bot orders and process the turn
+            with st.status("Processing Turn...", expanded=True) as status:
+                st.write("Gathering orders from all other players...")
+                process_res = requests.post(
+                    f"{API_URL}/game/{st.session_state.game_id}/process",
+                    json={"human_power": HUMAN_POWER, "phase": current_phase},
+                    headers=get_headers()
+                )
+
+                if process_res.status_code == 200:
+                    status.update(label="Turn Processed!", state="complete", expanded=False)
+                    process_data = process_res.json()
+                    # Stash what's needed to render the review screen after the rerun
+                    st.session_state.turn_review = {
+                        "prev_phase": process_data["prev_phase"],
+                        "new_phase": process_data["new_phase"],
+                        "bot_orders": process_data.get("bot_orders", {}),
+                    }
+                    st.rerun()
+                else:
+                    status.update(label="Process Failed", state="error")
+                    st.error(f"Failed to process turn: {process_res.text}")
+        else:
+            # Review screen: show the resolved board for the turn that just happened
+            review = st.session_state.turn_review
+            st.header(f"Turn Resolved: {review['prev_phase']}")
+            st.caption(f"New phase: {review['new_phase']}")
+
+            # Prefer the adjudication map from the latest state...
+            resolved_svg = game_state.get("history_svg")
+            # ...otherwise pull the resolved phase from the history endpoint
+            if not resolved_svg:
+                try:
+                    hist_res = requests.get(
+                        f"{API_URL}/game/{st.session_state.game_id}/history/{review['prev_phase']}",
+                        headers=get_headers()
+                    )
+                    if hist_res.status_code == 200:
+                        resolved_svg = hist_res.json().get("map_svg")
+                except Exception:
+                    pass
+            if not resolved_svg:
+                resolved_svg = game_state.get("map_svg")
+
+            render_svg_string(resolved_svg)
+
+            with st.expander("Show orders submitted this turn"):
+                bot_orders = review.get("bot_orders", {})
+                if bot_orders:
+                    for bp, orders in bot_orders.items():
+                        st.write(f"**{bp}:** {', '.join(orders) if orders else 'HOLD ALL'}")
+                else:
+                    st.write("No bot orders recorded.")
+
+            if st.button("Next Turn ▶", use_container_width=True, type="primary"):
+                st.session_state.turn_review = None
                 st.session_state.human_orders_submitted = False
                 st.session_state.negotiation_phase_ended = False
-                if st.button("Start Next Turn", use_container_width=True):
-                    st.rerun()
-            else:
-                status.update(label="Process Failed", state="error")
-                st.error(f"Failed to process turn: {process_res.text}")
+                st.rerun()
 
 # --- Chat Engine ---
 st.markdown("---")
@@ -406,22 +430,22 @@ with col2:
     if st.button("🔄 Refresh Messages", use_container_width=True):
         st.rerun()
 
-# Define the fragment. It will rerun independently every 15 seconds.
+HUMAN_POWER = st.session_state.human_power
+other_powers = [p for p in active_powers if p != HUMAN_POWER]
+tab_names = ["GLOBAL"] + sorted(other_powers)
+
+# Initialize a default in session state so the external form knows where to send
+tab_key = "chat_tab_selector"
+if tab_key not in st.session_state:
+    st.session_state[tab_key] = "GLOBAL"
+
+# 1. Message Display & Tabs (Inside Fragment) - Safely polls every 15s and updates red dots
 @st.fragment(run_every="15s")
-def render_chat():
-    HUMAN_POWER = st.session_state.human_power
+def render_chat_ui():
     msg_res = requests.get(f"{API_URL}/game/{st.session_state.game_id}/messages", params={"power": HUMAN_POWER}, headers=get_headers())
-    
-    if msg_res.status_code == 200:
-        messages = msg_res.json().get("messages", [])
-    else:
-        messages = []
+    messages = msg_res.json().get("messages", []) if msg_res.status_code == 200 else []
 
-    conversations = {"GLOBAL": []}
-    other_powers = [p for p in active_powers if p != HUMAN_POWER]
-    for p in other_powers:
-        conversations[p] = []
-
+    conversations = {tab: [] for tab in tab_names}
     for msg in messages:
         if msg["recipient"] == "GLOBAL":
             conversations["GLOBAL"].append(msg)
@@ -430,17 +454,18 @@ def render_chat():
             if partner in conversations:
                 conversations[partner].append(msg)
 
-    tab_names = ["GLOBAL"] + sorted(other_powers)
-    current_tab = st.session_state.get("chat_tab_selector", "GLOBAL")
+    # Update read counts for the currently selected tab
+    current_tab = st.session_state[tab_key]
     st.session_state.read_counts[current_tab] = len(conversations.get(current_tab, []))
 
+    # Calculate unread counts
     unread_counts = {}
     for t in tab_names:
         total_msgs = len(conversations.get(t, []))
         read_msgs = st.session_state.read_counts.get(t, 0)
-        unread = total_msgs - read_msgs
-        unread_counts[t] = unread if unread > 0 else 0
+        unread_counts[t] = total_msgs - read_msgs if (total_msgs - read_msgs) > 0 else 0
 
+    # Toast notifications
     current_msg_count = len(messages)
     if current_msg_count > st.session_state.get("last_seen_messages", 0):
         new_msgs = messages[st.session_state.get("last_seen_messages", 0):]
@@ -456,8 +481,23 @@ def render_chat():
             return f"🔴 {name} ({unread_counts[name]} new)"
         return name
 
-    selected_chat = st.radio("Select Conversation", tab_names, format_func=format_tab, horizontal=True, label_visibility="collapsed", key="chat_tab_selector")
+    # FIX: State preservation trick to stop the tabs from jumping back to GLOBAL on refresh
+    if st.session_state[tab_key] in tab_names:
+        st.session_state[tab_key] = st.session_state[tab_key]
+    else:
+        st.session_state[tab_key] = "GLOBAL"
 
+    # Render Tabs dynamically (Now inside the fragment again)
+    selected_chat = st.radio(
+        "Select Conversation", 
+        tab_names, 
+        format_func=format_tab, 
+        horizontal=True, 
+        label_visibility="collapsed", 
+        key=tab_key
+    )
+
+    # Render Messages
     chat_container = st.container(height=300)
     with chat_container:
         msgs = conversations.get(selected_chat, [])
@@ -465,14 +505,9 @@ def render_chat():
             st.info(f"Start of conversation in {selected_chat}.")
         else:
             for msg in msgs:
-                sender_label = msg["sender"]
-                align = "left"
-                bg_color = "#f0f2f6"
-                
-                if msg["sender"] == HUMAN_POWER:
-                    sender_label = "You"
-                    align = "right" 
-                    bg_color = "#e6f3ff"
+                sender_label = "You" if msg["sender"] == HUMAN_POWER else msg["sender"]
+                align = "right" if msg["sender"] == HUMAN_POWER else "left"
+                bg_color = "#e6f3ff" if msg["sender"] == HUMAN_POWER else "#f0f2f6"
                 
                 if align == "right":
                     _, msg_col = st.columns([1, 3])
@@ -482,13 +517,7 @@ def render_chat():
                 with msg_col:
                     st.markdown(
                         f"""
-                        <div style="
-                            background-color: {bg_color};
-                            padding: 10px;
-                            border-radius: 10px;
-                            margin-bottom: 5px;
-                            border: 1px solid #ddd;
-                        ">
+                        <div style="background-color: {bg_color}; padding: 10px; border-radius: 10px; margin-bottom: 5px; border: 1px solid #ddd;">
                             <small style="color: #666;"><b>{sender_label}</b> [{msg['phase']}]</small><br>
                             {msg['message']}
                         </div>
@@ -496,48 +525,40 @@ def render_chat():
                         unsafe_allow_html=True
                     )
 
-    def submit_chat():
-        st.session_state[f"submit_{selected_chat}"] = st.session_state[f"input_box_{selected_chat}"]
-        st.session_state[f"input_box_{selected_chat}"] = ""
+render_chat_ui()
 
-    user_input_placeholder = st.empty()
-    user_input_placeholder.text_input("Message:", key=f"input_box_{selected_chat}", placeholder=f"Message {selected_chat}...", on_change=submit_chat)
+# 2. Input Box (Outside Fragment) - 100% immune to timer resets and typing loss
+with st.form(key="chat_input_form", clear_on_submit=True):
+    col_input, col_btn = st.columns([5, 1])
+    with col_input:
+        # Note: Placeholder is generic because the form doesn't re-render when a tab is clicked
+        user_input = st.text_input("Message:", placeholder="Type a message to the selected channel...", label_visibility="collapsed")
+    with col_btn:
+        submit_btn = st.form_submit_button("Send", use_container_width=True)
 
-    if f"submit_{selected_chat}" in st.session_state:
-        user_input = st.session_state.pop(f"submit_{selected_chat}")
+if submit_btn and user_input.strip():
+    # Read the target channel directly from session state at the exact moment of clicking Send
+    target_channel = st.session_state.get(tab_key, "GLOBAL")
+    send_res = requests.post(
+        f"{API_URL}/game/{st.session_state.game_id}/messages",
+        json={
+            "sender": HUMAN_POWER,
+            "recipient": target_channel,
+            "message": user_input,
+            "phase": current_phase
+        },
+        headers=get_headers()
+    )
+    if send_res.status_code == 200:
+        st.toast("Message sent!", icon="✅")
+        # Force update the read count so our own message doesn't trigger a red dot
+        st.session_state.read_counts[target_channel] = st.session_state.read_counts.get(target_channel, 0) + 1
+        st.rerun()
     else:
-        user_input = None
-
-    if st.button("Send Message", key=f"send_btn_{selected_chat}") or user_input:
-        if user_input.strip():
-            send_res = requests.post(
-                f"{API_URL}/game/{st.session_state.game_id}/messages",
-                json={
-                    "sender": HUMAN_POWER,
-                    "recipient": selected_chat,
-                    "message": user_input,
-                    "phase": current_phase
-                },
-                headers=get_headers()
-            )
-            if send_res.status_code == 200:
-                st.toast("Message sent!", icon="✅")
-                st.session_state.read_counts[selected_chat] = len(conversations[selected_chat]) + 1
-                st.rerun() # Reruns just the fragment
-            else:
-                st.error("Failed to send message.")
-
-# Call the fragment function. Conditionally disable polling if orders are submitted by removing run_every.
-if not st.session_state.get('human_orders_submitted', False):
-    render_chat()
-else:
-    # If we want it to stop polling, we can call the inner logic without the fragment decorator 
-    # but Streamlit fragment's run_every handles this gracefully. 
-    # Calling it directly is fine.
-    render_chat()
-
+        st.error("Failed to send message.")
+        
 # --- Game Over ---
-if game_state["is_game_done"]:
+if game_state["is_game_done"] and not st.session_state.get("turn_review"):
     st.header("🏁 Game Over")
     winner = game_state["winner"]
     if winner:
